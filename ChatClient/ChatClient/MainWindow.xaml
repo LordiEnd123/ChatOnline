@@ -3,43 +3,83 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Онлайн чат" Height="450" Width="800">
     <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <!-- Левая колонка: контакты -->
+            <ColumnDefinition Width="220"/>
+            <!-- Правая колонка: чат -->
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-        <!-- Верх: имя пользователя -->
-        <StackPanel Orientation="Horizontal" Grid.Row="0">
-            <TextBlock Text="Имя:" VerticalAlignment="Center"/>
-            <TextBox x:Name="UserNameTextBox"
-                     Width="150"
-                     Margin="5,0,10,0"
-                     Text="User1" />
+        <!-- ====== СПИСОК КОНТАКТОВ ====== -->
+        <DockPanel Grid.Column="0" Margin="0,0,10,0">
+            <TextBlock Text="Контакты" FontWeight="Bold" DockPanel.Dock="Top"/>
 
-            <TextBlock Text="Статус:" VerticalAlignment="Center"/>
-            <TextBlock x:Name="ConnectionStatusTextBlock"
-                       Text="Отключено"
-                       Foreground="Red"
-                       FontWeight="Bold"
-                       Margin="5,0,0,0"/>
-        </StackPanel>
+            <StackPanel DockPanel.Dock="Top" Margin="0,5,0,5">
+                <TextBox x:Name="SearchContactTextBox"
+                         Width="200"
+                         Margin="0,0,0,5"/>
+                <Button Content="Найти"
+                    Width="80"
+                    Click="FindContactButton_Click"/>
+            </StackPanel>
 
-        <!-- Список сообщений -->
-        <ListBox x:Name="MessagesListBox" Grid.Row="1"/>
+            <ListBox x:Name="ContactsListBox"
+                 DockPanel.Dock="Bottom"
+                 Height="300"
+                 SelectionChanged="ContactsListBox_SelectionChanged"
+                 DisplayMemberPath="Email"/>
+        </DockPanel>
 
-        <!-- Ввод сообщения -->
-        <StackPanel Orientation="Horizontal" Grid.Row="2" Margin="0,5,0,0">
-            <TextBox x:Name="MessageTextBox"
-                     Width="600"
-                     Height="30"
-                     VerticalAlignment="Center"
-                     KeyDown="MessageTextBox_KeyDown"
-                     Margin="0,0,5,0"/>
-            <Button Content="Отправить"
-                    Width="100"
-                    Height="30"
+        <!-- ====== ОБЛАСТЬ ЧАТА ====== -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Верхняя панель -->
+            <StackPanel Grid.Row="0"
+                    Orientation="Horizontal"
+                    Margin="0,0,0,5">
+                <TextBlock Text="Имя:" VerticalAlignment="Center"/>
+                <TextBox x:Name="UserNameTextBox"
+                     Width="120"
+                     Margin="5,0,10,0"/>
+
+                <TextBlock Text="Статус:" VerticalAlignment="Center"/>
+                <TextBlock x:Name="ConnectionStatusTextBlock"
+                       Margin="5,0,10,0"
+                       VerticalAlignment="Center"
+                       Foreground="Gray"/>
+
+                <Button Content="Профиль"
+                    Width="80"
+                    Margin="0,0,5,0"
+                    Click="ProfileButton_Click"/>
+                <Button Content="Выйти"
+                    Width="80"
+                    Click="LogoutButton_Click"/>
+            </StackPanel>
+
+            <!-- Список сообщений -->
+            <ListBox x:Name="MessagesListBox"
+                 Grid.Row="1"
+                 Margin="0,0,0,5"/>
+
+            <!-- Ввод сообщения -->
+            <DockPanel Grid.Row="2">
+                <TextBox x:Name="MessageTextBox"
+                     Margin="0,0,5,0"
+                     DockPanel.Dock="Left"
+                     KeyDown="MessageTextBox_KeyDown"/>
+                <Button x:Name="SendButton"
+                    Content="Отправить"
+                    Width="90"
+                    DockPanel.Dock="Right"
                     Click="SendButton_Click"/>
-        </StackPanel>
+            </DockPanel>
+        </Grid>
     </Grid>
+
 </Window>

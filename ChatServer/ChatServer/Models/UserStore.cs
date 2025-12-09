@@ -1,47 +1,146 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
 
-namespace ChatServer.Models;
-
-public static class UserStore
+namespace ChatServer.Models
 {
-    // Потокобезопасный список пользователей в памяти
-    private static readonly ConcurrentDictionary<string, User> _usersByEmail = new();
-
-    // Немного тестовых пользователей, чтобы сразу было с кем чатиться
-    static UserStore()
+    public static class UserStore
     {
-        AddUser(new User
+        private static readonly string FilePath =
+            Path.Combine(AppContext.BaseDirectory, "users.json");
+
+        private static readonly object _lock = new();
+
+        private static List<User> _users = new();
+
+        // Статический конструктор — вызывается один раз при первом обращении к UserStore
+        static UserStore()
         {
-            Email = "user1@mail.com",
-            Password = "123",
-            Name = "User 1",
-            AvatarUrl = null,
-            Status = UserStatus.Online
-        });
+            LoadFromFile();
 
-        AddUser(new User
+            // Если пользователей нет — можно добавить тестовых
+            if (_users.Count == 0)
+            {
+                _users.Add(new User
+                {
+                    Email = "user1@mail.com",
+                    Password = "123",
+                    Name = "User 1",
+                    Status = UserStatus.Online
+                });
+
+                _users.Add(new User
+                {
+                    Email = "user2@mail.com",
+                    Password = "123",
+                    Name = "User 2",
+                    Status = UserStatus.Offline
+                });
+
+                SaveToFile();
+            }
+        }
+
+        public static IEnumerable<User> GetAll()
         {
-            Email = "user2@mail.com",
-            Password = "123",
-            Name = "User 2",
-            AvatarUrl = null,
-            Status = UserStatus.Offline
-        });
-    }
+            lock (_lock)
+            {
+                return _users.ToList();
+            }
+        }
 
-    public static IEnumerable<User> GetAll() => _usersByEmail.Values;
+        public static User? GetByEmail(string email)
+        {
+            lock (_lock)
+            {
+                return _users.FirstOrDefault(
+                    u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+            }
+        }
 
-    public static User? GetByEmail(string email)
-        => _usersByEmail.TryGetValue(email.ToLower(), out var user) ? user : null;
+        public static bool AddUser(User user)
+        {
+            lock (_lock)
+            {
+                if (_users.Any(u =>
+                        u.Email.Equals(user.Email, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return false;
+                }
 
-    public static bool AddUser(User user)
-    {
-        return _usersByEmail.TryAdd(user.Email.ToLower(), user);
-    }
+                _users.Add(user);
+                SaveToFile();
+                return true;
+            }
+        }
 
-    public static bool UpdateUser(User user)
-    {
-        _usersByEmail[user.Email.ToLower()] = user;
-        return true;
+        public static bool UpdateUser(User user)
+        {
+            lock (_lock)
+            {
+                var existing = _users.FirstOrDefault(
+                    u => u.Id == user.Id);
+
+                if (existing == null)
+                    return false;
+
+                // Обновляем поля
+                existing.Email = user.Email;
+                existing.Password = user.Password;
+                existing.Name = user.Name;
+                existing.AvatarUrl = user.AvatarUrl;
+                existing.Bio = user.Bio;
+                existing.Status = user.Status;
+                existing.NotificationsEnabled = user.NotificationsEnabled;
+                existing.SoundEnabled = user.SoundEnabled;
+                existing.BannerEnabled = user.BannerEnabled;
+
+                SaveToFile();
+                return true;
+            }
+        }
+
+        private static void LoadFromFile()
+        {
+            try
+            {
+                if (!File.Exists(FilePath))
+                {
+                    _users = new List<User>();
+                    return;
+                }
+
+                var json = File.ReadAllText(FilePath);
+                var users = JsonSerializer.Deserialize<List<User>>(json,
+                    new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                _users = users ?? new List<User>();
+            }
+            catch
+            {
+                _users = new List<User>();
+            }
+        }
+
+        private static void SaveToFile()
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(_users,
+                    new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    });
+
+                File.WriteAllText(FilePath, json);
+            }
+            catch
+            {
+            }
+        }
     }
 }
