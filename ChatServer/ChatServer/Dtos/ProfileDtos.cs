@@ -4,7 +4,7 @@ namespace ChatServer.Dtos;
 
 public class UpdateProfileRequest
 {
-    public string Email { get; set; } = null!; // кем сейчас залогинен
+    public string Email { get; set; } = null!;
     public string Name { get; set; } = null!;
     public string? AvatarUrl { get; set; }
     public string? Bio { get; set; }

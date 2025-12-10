@@ -7,8 +7,7 @@ namespace ChatServer.Models
 {
     public static class UserStore
     {
-        private static readonly string FilePath =
-            Path.Combine(AppContext.BaseDirectory, "users.json");
+        private static readonly string FilePath = Path.Combine(AppContext.BaseDirectory, "users.json");
 
         private static readonly object _lock = new();
 
@@ -85,7 +84,6 @@ namespace ChatServer.Models
                 if (existing == null)
                     return false;
 
-                // Обновляем поля
                 existing.Email = user.Email;
                 existing.Password = user.Password;
                 existing.Name = user.Name;
@@ -112,12 +110,7 @@ namespace ChatServer.Models
                 }
 
                 var json = File.ReadAllText(FilePath);
-                var users = JsonSerializer.Deserialize<List<User>>(json,
-                    new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    });
-
+                var users = JsonSerializer.Deserialize<List<User>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 _users = users ?? new List<User>();
             }
             catch
@@ -138,9 +131,7 @@ namespace ChatServer.Models
 
                 File.WriteAllText(FilePath, json);
             }
-            catch
-            {
-            }
+            catch { }
         }
     }
 }

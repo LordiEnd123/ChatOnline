@@ -17,10 +17,10 @@ namespace ChatClient
         public byte[]? FileContent { get; set; }
         public bool IsDeleted { get; set; }
 
-        // ======= СТАТУС =======
+        // Статус
         private string _status = "Sent";
 
-        [JsonIgnore]                 // в JSON это поле не нужно
+        [JsonIgnore] 
         public string Status
         {
             get => _status;
@@ -30,7 +30,7 @@ namespace ChatClient
                 {
                     _status = value;
                     OnPropertyChanged();           // Status
-                    OnPropertyChanged(nameof(DisplayText)); // для ListBox
+                    OnPropertyChanged(nameof(DisplayText)); // ListBox
                 }
             }
         }
@@ -42,9 +42,7 @@ namespace ChatClient
             get
             {
                 var kind = IsFile ? $"[Файл: {FileName}] " : "";
-
-                var isMine = FromEmail.Equals(Session.Email,
-                    StringComparison.OrdinalIgnoreCase);
+                var isMine = FromEmail.Equals(Session.Email, StringComparison.OrdinalIgnoreCase);
 
                 if (isMine)
                 {
@@ -64,10 +62,7 @@ namespace ChatClient
             }
         }
 
-        // Чтобы старый код, который вызывает ToString(), тоже работал
         public override string ToString() => DisplayText;
-
-        // ======= INotifyPropertyChanged =======
 
         public event PropertyChangedEventHandler? PropertyChanged;
 

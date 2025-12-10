@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
-using System.IO;              // ← добавили
-using System.Text.Json;       // ← добавили
+using System.IO; 
+using System.Text.Json;
 using System.Linq;
 
 namespace ChatServer
@@ -12,19 +12,16 @@ namespace ChatServer
         private static readonly ConcurrentDictionary<string, string> _connections =
             new ConcurrentDictionary<string, string>();
 
-        // Простое хранилище сообщений (в памяти)
+        // Простое хранилище сообщений
         private static readonly List<ChatMessage> _messages = new List<ChatMessage>();
         private static int _nextId = 0;
 
-        // ===== ФАЙЛ ДЛЯ ДИАЛОГОВ =====
+        // Файл диалогов
         private const string DialogsFilePath = "dialogs.json";
 
         // ключ = "email1|email2"
         private static readonly Dictionary<string, List<ChatMessage>> _dialogs = LoadDialogs();
 
-
-
-        // ----- утилита: достаём email из query -----
         private string? GetUserEmail()
         {
             if (Context.GetHttpContext()?.Request.Query.TryGetValue("user", out var values) == true)
@@ -33,7 +30,7 @@ namespace ChatServer
             return null;
         }
 
-        // ----- подключение / отключение -----
+        // Подключение и отключение
         public override Task OnConnectedAsync()
         {
             var email = GetUserEmail();
@@ -56,16 +53,13 @@ namespace ChatServer
             return _connections.Where(p => p.Value == email).Select(p => p.Key);
         }
 
-        // ====== СТАРЫЙ ОБЩИЙ ЧАТ (можно оставить) ======
+        // Общий чат
         public async Task SendMessage(string user, string message)
         {
             await Clients.All.SendAsync("ReceiveMessage", user, message);
         }
 
-        // ====== ЛИЧНЫЕ СООБЩЕНИЯ ======
-
-        // отправка сообщения конкретному пользователю
-        // отправка сообщения конкретному пользователю
+        // Личные сообщения
         public async Task SendPrivateMessage(string toEmail, string text,
                                      bool isFile, string? fileName,
                                      byte[]? fileContent)
@@ -88,13 +82,12 @@ namespace ChatServer
                 Status = MessageStatus.Sent
             };
 
-            // при желании можно оставить общий список, но для истории нам важен _dialogs
             lock (_messages)
             {
                 _messages.Add(msg);
             }
 
-            // ===== добавляем в общий диалог для пары пользователей =====
+            // Добавляем в общий диалог для пары пользователей
             var key = GetDialogKey(fromEmail!, toEmail);
 
             lock (_dialogs)
@@ -110,9 +103,8 @@ namespace ChatServer
 
             // Сохраняем диалоги на диск
             SaveDialogs();
-            // ===========================================================
 
-            // Отправляем отправителю и получателю (как было)
+            // Отправляем отправителю и получателю
             var targets = GetConnectionsByEmail(msg.FromEmail)
                 .Concat(GetConnectionsByEmail(msg.ToEmail))
                 .Distinct();
@@ -122,8 +114,7 @@ namespace ChatServer
         }
 
 
-
-        // история диалога между текущим пользователем и otherEmail
+        // История диалога между текущим пользователем и другим
         public Task<List<ChatMessage>> GetDialogMessages(string withEmail)
         {
             var currentUserEmail = GetUserEmail() ?? "";
@@ -150,7 +141,6 @@ namespace ChatServer
                     .OrderBy(m => m.Timestamp)
                     .ToList();
             }
-
             return Task.FromResult(result);
         }
 
@@ -158,10 +148,7 @@ namespace ChatServer
 
         private static string GetDialogKey(string user1, string user2)
         {
-            // ключ не зависит от порядка (A|B и B|A ― одно и то же)
-            return string.CompareOrdinal(user1, user2) < 0
-                ? $"{user1}|{user2}"
-                : $"{user2}|{user1}";
+            return string.CompareOrdinal(user1, user2) < 0 ? $"{user1}|{user2}" : $"{user2}|{user1}";
         }
 
         // Загружаем диалоги из файла при старте приложения
@@ -174,12 +161,8 @@ namespace ChatServer
 
                 var json = File.ReadAllText(DialogsFilePath);
 
-                var allMessages = JsonSerializer.Deserialize<List<ChatMessage>>(
-                    json,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-                ) ?? new List<ChatMessage>();
+                var allMessages = JsonSerializer.Deserialize<List<ChatMessage>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<ChatMessage>();
 
-                // обновляем счётчик Id, чтобы новые сообщения не начинались с 0
                 if (allMessages.Count > 0)
                 {
                     _nextId = allMessages.Max(m => m.Id);
@@ -198,12 +181,10 @@ namespace ChatServer
 
                     list.Add(m);
                 }
-
                 return dict;
             }
             catch
             {
-                // если что-то пошло не так — начинаем с пустого словаря
                 return new Dictionary<string, List<ChatMessage>>(StringComparer.OrdinalIgnoreCase);
             }
         }
@@ -229,10 +210,7 @@ namespace ChatServer
 
                 File.WriteAllText(DialogsFilePath, json);
             }
-            catch
-            {
-                // Для ДЗ можно спокойно игнорировать ошибку сохранения
-            }
+            catch { }
         }
 
         public async Task MarkDelivered(int messageId)
@@ -257,7 +235,6 @@ namespace ChatServer
                     msg.Status = MessageStatus.Read;
                 SaveDialogs();
             }
-
             await Clients.All.SendAsync("MessageStatusChanged", messageId, "Read");
         }
 
@@ -274,14 +251,12 @@ namespace ChatServer
                 }
                 else return;
             }
-
             await Clients.All.SendAsync("MessageEdited", messageId, newText);
         }
 
         public async Task DeleteMessage(int messageId)
         {
             bool removed = false;
-
             lock (_dialogs)
             {
                 foreach (var list in _dialogs.Values)
@@ -302,8 +277,5 @@ namespace ChatServer
             if (removed)
                 await Clients.All.SendAsync("MessageDeleted", messageId);
         }
-
-
-
     }
 }

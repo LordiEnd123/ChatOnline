@@ -12,12 +12,8 @@ namespace ChatClient
 
     public static class ClientConfig
     {
-        private static readonly string FolderPath =
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "ChatClient");
-
-        private static readonly string FilePath =
-            Path.Combine(FolderPath, "config.json");
+        private static readonly string FolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ChatClient");
+        private static readonly string FilePath = Path.Combine(FolderPath, "config.json");
 
         public static ClientConfigModel Load()
         {
@@ -27,9 +23,7 @@ namespace ChatClient
                     return new ClientConfigModel();
 
                 var json = File.ReadAllText(FilePath);
-                var cfg = JsonSerializer.Deserialize<ClientConfigModel>(json,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
+                var cfg = JsonSerializer.Deserialize<ClientConfigModel>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 return cfg ?? new ClientConfigModel();
             }
             catch
@@ -45,15 +39,10 @@ namespace ChatClient
                 if (!Directory.Exists(FolderPath))
                     Directory.CreateDirectory(FolderPath);
 
-                var json = JsonSerializer.Serialize(config,
-                    new JsonSerializerOptions { WriteIndented = true });
-
+                var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(FilePath, json);
             }
-            catch
-            {
-                // для ДЗ можно игнорировать
-            }
+            catch { }
         }
 
         public static void Clear()
@@ -63,10 +52,7 @@ namespace ChatClient
                 if (File.Exists(FilePath))
                     File.Delete(FilePath);
             }
-            catch
-            {
-                // игнорируем
-            }
+            catch { }
         }
     }
 }

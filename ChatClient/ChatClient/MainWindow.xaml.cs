@@ -12,7 +12,7 @@ using System.Windows.Media;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Win32;
 using System.IO;
-using Microsoft.VisualBasic; // для InputBox при редактировании
+using Microsoft.VisualBasic;
 
 namespace ChatClient
 {
@@ -26,11 +26,8 @@ namespace ChatClient
         // Список контактов
         private readonly ObservableCollection<ContactView> _contacts = new();
 
-        // Email текущего собеседника (если выбран диалог), иначе null = общий чат
+        // Email текущего собеседника
         private string? _currentDialogEmail;
-
-
-
 
         public MainWindow() : this(Session.Name ?? "User")
         {
@@ -50,17 +47,17 @@ namespace ChatClient
 
             InitializeConnection();
 
-            // Загрузка контактов (списка пользователей)
+            // Загрузка контактов
             _ = LoadContactsAsync();
         }
 
-        // ================= ИНИЦИАЛИЗАЦИЯ ПОДКЛЮЧЕНИЯ =================
+        // Иницилизация подключения
         private const string ServerBaseUrl = "http://192.168.1.105:5099";
 
 
         private void InitializeConnection()
         {
-            // адрес хаба
+            // Адрес хаба
             var hubUrl = $"{ServerBaseUrl}/chat";
 
             _connection = new HubConnectionBuilder()
@@ -68,10 +65,8 @@ namespace ChatClient
                 .WithAutomaticReconnect()
                 .Build();
 
-            // email текущего пользователя (чтобы сервер понимал, кто мы)
-            var email = string.IsNullOrEmpty(Session.Email)
-                ? "anonymous@example.com"
-                : Session.Email;
+            // email текущего пользователя
+            var email = string.IsNullOrEmpty(Session.Email) ? "anonymous@example.com" : Session.Email;
 
             var urlWithUser = $"{hubUrl}?user={Uri.EscapeDataString(email)}";
 
@@ -80,7 +75,7 @@ namespace ChatClient
                 .WithAutomaticReconnect()
                 .Build();
 
-            // --- старый общий чат (опционально) ---
+            // Старый общий чат
             _connection.On<string, string>("ReceiveMessage", (user, message) =>
             {
                 Dispatcher.Invoke(() =>
@@ -96,13 +91,11 @@ namespace ChatClient
                 });
             });
 
-            // --- личные сообщения и операции с ними ---
+            // Личные сообщения и операции с ними
             _connection.On<object>("ReceivePrivateMessage", OnReceivePrivateMessage);
             _connection.On<int, string>("MessageStatusChanged", OnMessageStatusChanged);
             _connection.On<int, string>("MessageEdited", OnMessageEdited);
             _connection.On<int>("MessageDeleted", OnMessageDeleted);
-
-
 
             ConnectToServer();
         }
@@ -126,7 +119,6 @@ namespace ChatClient
             {
                 ConnectionStatusTextBlock.Text = "Ошибка";
                 ConnectionStatusTextBlock.Foreground = Brushes.Red;
-
                 _currentMessages.Add(new ChatMessageView
                 {
                     Text = $"Не удалось подключиться: {ex.Message}",
@@ -136,7 +128,7 @@ namespace ChatClient
             }
         }
 
-        // ================= ЗАГРУЗКА КОНТАКТОВ =================
+        // Загрузка контактов
 
         private async Task LoadContactsAsync()
         {
@@ -165,36 +157,26 @@ namespace ChatClient
                     });
                 }
             }
-            catch
-            {
-                // для ДЗ можно ничего не делать
-            }
+            catch { }
         }
 
-        // ================= ВХОДЯЩИЕ СООБЩЕНИЯ =================
+        // Входящие сообщения
 
         private async void OnReceivePrivateMessage(object raw)
         {
-            // пришёл анонимный объект -> превращаем в ChatMessageView
             var json = JsonSerializer.Serialize(raw);
-            var msg = JsonSerializer.Deserialize<ChatMessageView>(
-                json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var msg = JsonSerializer.Deserialize<ChatMessageView>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
             if (msg == null) return;
 
-            // Добавляем в список сообщений (на UI-потоке)
             Dispatcher.Invoke(() =>
             {
-                if (_currentDialogEmail == null ||
-                    msg.FromEmail == _currentDialogEmail ||
-                    msg.ToEmail == _currentDialogEmail)
+                if (_currentDialogEmail == null || msg.FromEmail == _currentDialogEmail || msg.ToEmail == _currentDialogEmail)
                 {
                     _currentMessages.Add(msg);
                 }
             });
 
-            // Если сообщение пришло ИМЕННО НАМ – ставим Delivered и Read
             if (string.Equals(msg.ToEmail, Session.Email, StringComparison.OrdinalIgnoreCase))
             {
                 try
@@ -202,10 +184,7 @@ namespace ChatClient
                     await _connection.InvokeAsync("MarkDelivered", msg.Id);
                     await _connection.InvokeAsync("MarkRead", msg.Id);
                 }
-                catch
-                {
-                    // можно молча игнорировать ошибку
-                }
+                catch { }
             }
         }
 
@@ -226,7 +205,6 @@ namespace ChatClient
 
         private void OnMessageEdited(int id, string newText)
         {
-            // при любом редактировании просто обновляем текущий диалог
             _ = Dispatcher.InvokeAsync(async () =>
             {
                 await ReloadCurrentDialogAsync();
@@ -246,8 +224,7 @@ namespace ChatClient
             });
         }
 
-        // ================= ОТПРАВКА СООБЩЕНИЙ =================
-
+        // Отправка сообщений
         private async void SendButton_Click(object sender, RoutedEventArgs e)
         {
             var text = MessageTextBox.Text;
@@ -258,22 +235,13 @@ namespace ChatClient
             {
                 if (!string.IsNullOrEmpty(_currentDialogEmail))
                 {
-                    await _connection.InvokeAsync("SendPrivateMessage",
-                        _currentDialogEmail,
-                        text,
-                        false,
-                        null,
-                        null);
+                    await _connection.InvokeAsync("SendPrivateMessage", _currentDialogEmail, text, false, null, null);
                 }
                 else
                 {
-                    var user = string.IsNullOrWhiteSpace(UserNameTextBox.Text)
-                        ? "Аноним"
-                        : UserNameTextBox.Text;
-
+                    var user = string.IsNullOrWhiteSpace(UserNameTextBox.Text) ? "Аноним" : UserNameTextBox.Text;
                     await _connection.InvokeAsync("SendMessage", user, text);
                 }
-
                 MessageTextBox.Clear();
             }
             catch (Exception ex)
@@ -295,28 +263,23 @@ namespace ChatClient
             }
         }
 
-        // ================= КОНТАКТЫ / ДИАЛОГИ =================
+        // Контакты и диалоги
 
         private async void ContactsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             var contact = ContactsListBox.SelectedItem as ContactView;
-            if (contact == null || _connection == null ||
-                _connection.State != HubConnectionState.Connected)
+            if (contact == null || _connection == null || _connection.State != HubConnectionState.Connected)
                 return;
 
             _currentDialogEmail = contact.Email;
 
             try
             {
-                var messages = await _connection.InvokeAsync<List<ChatMessageView>>(
-                    "GetDialogMessages",
-                    _currentDialogEmail);
-
+                var messages = await _connection.InvokeAsync<List<ChatMessageView>>("GetDialogMessages", _currentDialogEmail);
                 _currentMessages.Clear();
                 foreach (var m in messages)
                     _currentMessages.Add(m);
 
-                // всё, что нам адресовано и ещё не прочитано — пометим как Read
                 var unread = messages
                     .Where(m => m.ToEmail == Session.Email && m.Status != "Read")
                     .Select(m => m.Id)
@@ -328,10 +291,7 @@ namespace ChatClient
                     {
                         await _connection.InvokeAsync("MarkRead", id);
                     }
-                    catch
-                    {
-                        // ок, забьём
-                    }
+                    catch { }
                 }
             }
             catch (Exception ex)
@@ -351,9 +311,7 @@ namespace ChatClient
             if (string.IsNullOrEmpty(query))
                 return;
 
-            var found = _contacts.FirstOrDefault(c =>
-                c.Email.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                c.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
+            var found = _contacts.FirstOrDefault(c => c.Email.Contains(query, StringComparison.OrdinalIgnoreCase) || c.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
 
             if (found != null)
             {
@@ -362,7 +320,7 @@ namespace ChatClient
             }
         }
 
-        // ================= ПРОФИЛЬ =================
+        // Профиль
 
         private void ProfileButton_Click(object sender, RoutedEventArgs e)
         {
@@ -375,7 +333,7 @@ namespace ChatClient
             UserNameTextBox.Text = Session.Name;
         }
 
-        // ================= ВЫХОД =================
+        // Выход
 
         private async void LogoutButton_Click(object sender, RoutedEventArgs e)
         {
@@ -388,10 +346,7 @@ namespace ChatClient
                     _connection = null;
                 }
             }
-            catch
-            {
-                // для ДЗ можно игнорировать
-            }
+            catch { }
 
             ClientConfig.Clear();
             Session.Email = "";
@@ -403,7 +358,7 @@ namespace ChatClient
             Close();
         }
 
-        // ================= ПРИКРЕПЛЕНИЕ ФАЙЛОВ =================
+        // Приклепление файлов
 
         private async void AttachButton_Click(object sender, RoutedEventArgs e)
         {
@@ -451,14 +406,7 @@ namespace ChatClient
 
             try
             {
-                await _connection.InvokeAsync(
-                    "SendPrivateMessage",
-                    _currentDialogEmail,
-                    "",
-                    true,
-                    fileName,
-                    bytes
-                );
+                await _connection.InvokeAsync("SendPrivateMessage", _currentDialogEmail, "", true, fileName, bytes);
             }
             catch (Exception ex)
             {
@@ -508,17 +456,14 @@ namespace ChatClient
             if (sender is not MenuItem mi || mi.Tag is not ChatMessageView msg)
                 return;
 
-            // редактируем только свои
+            // Редактируем только свои
             if (!msg.FromEmail.Equals(Session.Email, StringComparison.OrdinalIgnoreCase))
             {
                 MessageBox.Show("Можно редактировать только свои сообщения.");
                 return;
             }
 
-            var newText = Interaction.InputBox(
-                "Измените текст сообщения:",
-                "Редактирование",
-                msg.Text);
+            var newText = Interaction.InputBox("Измените текст сообщения:", "Редактирование", msg.Text);
 
             if (string.IsNullOrWhiteSpace(newText) || newText == msg.Text)
                 return;
@@ -549,8 +494,7 @@ namespace ChatClient
                 return;
             }
 
-            if (MessageBox.Show("Удалить сообщение?", "Удаление",
-                    MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            if (MessageBox.Show("Удалить сообщение?", "Удаление", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 return;
 
             try
@@ -576,7 +520,6 @@ namespace ChatClient
 
             // Создаём контекстное меню
             var menu = new ContextMenu();
-
             var editItem = new MenuItem
             {
                 Header = "Редактировать",
@@ -593,23 +536,16 @@ namespace ChatClient
 
             menu.Items.Add(editItem);
             menu.Items.Add(deleteItem);
-
-            // показываем меню
             menu.IsOpen = true;
         }
 
         private async Task ReloadCurrentDialogAsync()
         {
-            if (string.IsNullOrEmpty(_currentDialogEmail) ||
-                _connection == null ||
-                _connection.State != HubConnectionState.Connected)
+            if (string.IsNullOrEmpty(_currentDialogEmail) || _connection == null ||  _connection.State != HubConnectionState.Connected)
                 return;
             try
             {
-                var messages = await _connection.InvokeAsync<List<ChatMessageView>>(
-                    "GetDialogMessages",
-                    _currentDialogEmail);
-
+                var messages = await _connection.InvokeAsync<List<ChatMessageView>>("GetDialogMessages", _currentDialogEmail);
                 _currentMessages.Clear();
                 foreach (var m in messages)
                     _currentMessages.Add(m);

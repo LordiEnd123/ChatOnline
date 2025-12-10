@@ -20,7 +20,6 @@ namespace ChatClient
 
         public static class ApiConfig
         {
-            // IP машины, где крутится сервер (по ipconfig – 192.168.1.105)
             public const string ServerBaseUrl = "http://192.168.1.105:5099";
         }
 
@@ -46,9 +45,7 @@ namespace ChatClient
             public string Name { get; set; } = null!;
         }
 
-        /// <summary>
-        /// При загрузке окна пробуем автоматический вход.
-        /// </summary>
+        // При загрузке окна пробуем автоматический вход.
         private async void LoginWindow_Loaded(object sender, RoutedEventArgs e)
         {
             var cfg = ClientConfig.Load();
@@ -68,13 +65,10 @@ namespace ChatClient
             await DoLoginAsync(auto: false);
         }
 
-        /// <summary>
-        /// Общий код логина (авто и ручной)
-        /// </summary>
+        // Общий код логина (авто и ручной)
         private async Task DoLoginAsync(bool auto)
         {
             StatusTextBlock.Text = auto ? "Автовход..." : "Выполняется вход...";
-
             var email = EmailTextBox.Text.Trim();
             var password = PasswordBox.Password;
 
@@ -94,28 +88,24 @@ namespace ChatClient
 
                 var json = JsonSerializer.Serialize(req);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-
                 var response = await _httpClient.PostAsync($"{BaseUrl}/api/Auth/login", content);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     if (auto)
                     {
-                        // тихий провал: просто оставляем окно логина
                         StatusTextBlock.Text = "";
                     }
                     else
                     {
                         StatusTextBlock.Text = "Неверный email или пароль.";
                     }
-
                     ClientConfig.Clear();
                     return;
                 }
 
                 var body = await response.Content.ReadAsStringAsync();
-                var user = JsonSerializer.Deserialize<LoginResponse>(body,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var user = JsonSerializer.Deserialize<LoginResponse>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
                 if (user == null)
                 {
@@ -123,18 +113,18 @@ namespace ChatClient
                     return;
                 }
 
-                // сохраняем текущего пользователя
+                // Сохраняем текущего пользователя
                 Session.Email = user.Email;
                 Session.Name = user.Name;
 
-                // всегда сохраняем для авто-логина
+                // Всегда сохраняем для авто-логина
                 ClientConfig.Save(new ClientConfigModel
                 {
                     Email = email,
                     Password = password
                 });
 
-                // открываем окно чата
+                // Открываем окно чата
                 var chatWindow = new MainWindow(user.Name);
                 chatWindow.Show();
                 this.Close();
@@ -145,9 +135,7 @@ namespace ChatClient
             }
         }
 
-        /// <summary>
-        /// Регистрация нового пользователя.
-        /// </summary>
+        // Регистрация нового пользователя
         private async void RegisterButton_Click(object sender, RoutedEventArgs e)
         {
             StatusTextBlock.Text = "Регистрация...";
@@ -177,7 +165,6 @@ namespace ChatClient
 
                 var json = JsonSerializer.Serialize(req);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-
                 var response = await _httpClient.PostAsync($"{BaseUrl}/api/Auth/register", content);
 
                 if (!response.IsSuccessStatusCode)
@@ -195,7 +182,7 @@ namespace ChatClient
             }
         }
 
-        // Кнопка восстановления — оставляем твой существующий обработчик
+        // Кнопка восстановления
         private async void RestoreButton_Click(object sender, RoutedEventArgs e)
         {
             var email = EmailTextBox.Text.Trim();
@@ -207,9 +194,7 @@ namespace ChatClient
 
             try
             {
-                await _httpClient.PostAsync(
-                    $"{BaseUrl}/api/Auth/restore",
-                    new StringContent($"{{\"email\":\"{email}\"}}", Encoding.UTF8, "application/json"));
+                await _httpClient.PostAsync($"{BaseUrl}/api/Auth/restore", new StringContent($"{{\"email\":\"{email}\"}}", Encoding.UTF8, "application/json"));
 
                 StatusTextBlock.Foreground = System.Windows.Media.Brushes.Green;
                 StatusTextBlock.Text = "Инструкция отправлена (симуляция).";

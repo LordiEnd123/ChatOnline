@@ -9,7 +9,7 @@ namespace ChatClient
 {
     public partial class ProfileWindow : Window
     {
-        private const string BaseUrl = "https://localhost:7090"; // порт как у Swagger
+        private const string BaseUrl = "https://localhost:7090";
 
         private readonly HttpClient _httpClient = new HttpClient(
             new HttpClientHandler
@@ -74,8 +74,7 @@ namespace ChatClient
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
-                var user = JsonSerializer.Deserialize<UserDto>(json,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var user = JsonSerializer.Deserialize<UserDto>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
                 if (user == null)
                 {
@@ -88,7 +87,7 @@ namespace ChatClient
                 AvatarTextBox.Text = user.AvatarUrl;
                 BioTextBox.Text = user.Bio;
 
-                // Статус (enum на сервере: 0-Offline,1-Online,2-DoNotDisturb)
+                // Статус
                 StatusComboBox.SelectedIndex = user.Status;
 
                 NotificationsEnabledCheckBox.IsChecked = user.NotificationsEnabled;
@@ -144,8 +143,6 @@ namespace ChatClient
 
                 StatusTextBlock.Foreground = Brushes.Green;
                 StatusTextBlock.Text = "Профиль сохранён.";
-
-                // Обновим имя в Session (для отображения в чате)
                 Session.Name = req.Name;
             }
             catch (Exception ex)

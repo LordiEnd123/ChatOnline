@@ -55,7 +55,7 @@
     "Timestamp": "2025-12-10T00:51:11.9554187Z",
     "IsFile": false,
     "FileName": null,
-    "Status": 0,
+    "Status": 2,
     "FileContent": null,
     "IsDeleted": false
   },
@@ -283,7 +283,7 @@
     "Timestamp": "2025-12-10T11:58:43.0364895Z",
     "IsFile": false,
     "FileName": null,
-    "Status": 0,
+    "Status": 2,
     "FileContent": null,
     "IsDeleted": false
   },
@@ -307,7 +307,7 @@
     "Timestamp": "2025-12-10T12:33:39.1503512Z",
     "IsFile": false,
     "FileName": null,
-    "Status": 0,
+    "Status": 2,
     "FileContent": null,
     "IsDeleted": false
   },
@@ -319,7 +319,7 @@
     "Timestamp": "2025-12-10T12:33:43.1617881Z",
     "IsFile": false,
     "FileName": null,
-    "Status": 0,
+    "Status": 2,
     "FileContent": null,
     "IsDeleted": false
   },
@@ -331,7 +331,31 @@
     "Timestamp": "2025-12-10T12:33:49.3857994Z",
     "IsFile": false,
     "FileName": null,
-    "Status": 0,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
+  },
+  {
+    "Id": 32,
+    "FromEmail": "t@",
+    "ToEmail": "f2",
+    "Text": "dsfasdfasdfasfas",
+    "Timestamp": "2025-12-10T12:38:40.7591754Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
+  },
+  {
+    "Id": 35,
+    "FromEmail": "f2",
+    "ToEmail": "t@",
+    "Text": "\u0430\u0445\u0430\u0430\u0445\u0430\u0445\u0445\u0430\u0445\u0430\u0445\u0430\u0445\u0430",
+    "Timestamp": "2025-12-10T12:39:42.9428145Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
     "FileContent": null,
     "IsDeleted": false
   }

@@ -8,9 +8,7 @@ namespace ChatServer.Controllers;
 [Route("api/[controller]")]
 public class ProfileController : ControllerBase
 {
-    /// <summary>
-    /// Получить профиль по email
-    /// </summary>
+    // Получить профиль по email
     [HttpGet("{email}")]
     public ActionResult<UserDto> GetProfile(string email)
     {
@@ -21,9 +19,7 @@ public class ProfileController : ControllerBase
         return Ok(UserDto.FromUser(user));
     }
 
-    /// <summary>
-    /// Обновить профиль (имя, аватар, био, статус, уведомления)
-    /// </summary>
+    // Обновить профиль
     [HttpPut("update")]
     public ActionResult<UserDto> UpdateProfile([FromBody] UpdateProfileRequest request)
     {
@@ -40,13 +36,10 @@ public class ProfileController : ControllerBase
         user.BannerEnabled = request.BannerEnabled;
 
         UserStore.UpdateUser(user);
-
         return Ok(UserDto.FromUser(user));
     }
 
-    /// <summary>
-    /// Смена email
-    /// </summary>
+    // Смена email
     [HttpPost("change-email")]
     public ActionResult<UserDto> ChangeEmail([FromBody] ChangeEmailRequest request)
     {
@@ -67,9 +60,7 @@ public class ProfileController : ControllerBase
         return Ok(UserDto.FromUser(user));
     }
 
-    /// <summary>
-    /// Смена пароля
-    /// </summary>
+    // Смена пароля
     [HttpPost("change-password")]
     public ActionResult ChangePassword([FromBody] ChangePasswordRequest request)
     {
