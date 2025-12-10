@@ -55,11 +55,18 @@ namespace ChatClient
         }
 
         // ================= ИНИЦИАЛИЗАЦИЯ ПОДКЛЮЧЕНИЯ =================
+        private const string ServerBaseUrl = "http://192.168.1.105:5099";
+
 
         private void InitializeConnection()
         {
             // адрес хаба
-            var hubUrl = "https://localhost:7090/chat";
+            var hubUrl = $"{ServerBaseUrl}/chat";
+
+            _connection = new HubConnectionBuilder()
+                .WithUrl(hubUrl)
+                .WithAutomaticReconnect()
+                .Build();
 
             // email текущего пользователя (чтобы сервер понимал, кто мы)
             var email = string.IsNullOrEmpty(Session.Email)
@@ -90,10 +97,12 @@ namespace ChatClient
             });
 
             // --- личные сообщения и операции с ними ---
-            _connection.On<ChatMessageView>("ReceivePrivateMessage", OnReceivePrivateMessage);
+            _connection.On<object>("ReceivePrivateMessage", OnReceivePrivateMessage);
             _connection.On<int, string>("MessageStatusChanged", OnMessageStatusChanged);
             _connection.On<int, string>("MessageEdited", OnMessageEdited);
             _connection.On<int>("MessageDeleted", OnMessageDeleted);
+
+
 
             ConnectToServer();
         }
@@ -134,7 +143,7 @@ namespace ChatClient
             try
             {
                 using var client = new HttpClient();
-                var response = await client.GetAsync("https://localhost:7090/api/Auth/users");
+                var response = await client.GetAsync($"{ServerBaseUrl}/api/Auth/users");
                 response.EnsureSuccessStatusCode();
 
                 var json = await response.Content.ReadAsStringAsync();
@@ -164,9 +173,18 @@ namespace ChatClient
 
         // ================= ВХОДЯЩИЕ СООБЩЕНИЯ =================
 
-        private void OnReceivePrivateMessage(ChatMessageView msg)
+        private async void OnReceivePrivateMessage(object raw)
         {
-            Dispatcher.Invoke(async () =>
+            // пришёл анонимный объект -> превращаем в ChatMessageView
+            var json = JsonSerializer.Serialize(raw);
+            var msg = JsonSerializer.Deserialize<ChatMessageView>(
+                json,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (msg == null) return;
+
+            // Добавляем в список сообщений (на UI-потоке)
+            Dispatcher.Invoke(() =>
             {
                 if (_currentDialogEmail == null ||
                     msg.FromEmail == _currentDialogEmail ||
@@ -174,22 +192,23 @@ namespace ChatClient
                 {
                     _currentMessages.Add(msg);
                 }
-
-                // если сообщение пришло нам — отмечаем как Delivered / Read
-                if (msg.ToEmail.Equals(Session.Email, StringComparison.OrdinalIgnoreCase))
-                {
-                    try
-                    {
-                        await _connection.InvokeAsync("MarkDelivered", msg.Id);
-                        await _connection.InvokeAsync("MarkRead", msg.Id);
-                    }
-                    catch
-                    {
-                        // можно игнорировать
-                    }
-                }
             });
+
+            // Если сообщение пришло ИМЕННО НАМ – ставим Delivered и Read
+            if (string.Equals(msg.ToEmail, Session.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    await _connection.InvokeAsync("MarkDelivered", msg.Id);
+                    await _connection.InvokeAsync("MarkRead", msg.Id);
+                }
+                catch
+                {
+                    // можно молча игнорировать ошибку
+                }
+            }
         }
+
 
         private void OnMessageStatusChanged(int id, string status)
         {
@@ -585,7 +604,6 @@ namespace ChatClient
                 _connection == null ||
                 _connection.State != HubConnectionState.Connected)
                 return;
-
             try
             {
                 var messages = await _connection.InvokeAsync<List<ChatMessageView>>(
@@ -606,7 +624,5 @@ namespace ChatClient
                 });
             }
         }
-
-
     }
 }

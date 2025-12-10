@@ -9,17 +9,19 @@ namespace ChatClient
 {
     public partial class LoginWindow : Window
     {
-        private const string BaseUrl = "https://localhost:7090"; // как в Swagger
+        private static readonly string BaseUrl = ApiConfig.ServerBaseUrl;
 
-        private readonly HttpClient _httpClient = new HttpClient(
-            new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (_, _, _, _) => true
-            });
+        private readonly HttpClient _httpClient = new HttpClient();
 
         public LoginWindow()
         {
             InitializeComponent();
+        }
+
+        public static class ApiConfig
+        {
+            // IP машины, где крутится сервер (по ipconfig – 192.168.1.105)
+            public const string ServerBaseUrl = "http://192.168.1.105:5099";
         }
 
         // DTO для логина

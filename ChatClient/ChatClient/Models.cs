@@ -1,9 +1,11 @@
 ﻿using System;
-using System.Text.Json.Serialization;   // добавь это
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace ChatClient
 {
-    public class ChatMessageView
+    public class ChatMessageView : INotifyPropertyChanged
     {
         public int Id { get; set; }
         public string FromEmail { get; set; } = "";
@@ -12,39 +14,65 @@ namespace ChatClient
         public DateTime Timestamp { get; set; }
         public bool IsFile { get; set; }
         public string? FileName { get; set; }
-
-        // <--- ВАЖНО: говорим Json'у вообще НЕ трогать это поле
-        [JsonIgnore]
-        public string Status { get; set; } = "Sent";
-
         public byte[]? FileContent { get; set; }
-
         public bool IsDeleted { get; set; }
 
-        public override string ToString()
+        // ======= СТАТУС =======
+        private string _status = "Sent";
+
+        [JsonIgnore]                 // в JSON это поле не нужно
+        public string Status
         {
-            var kind = IsFile ? $"[Файл: {FileName}] " : "";
-
-            // Показываем статус только для СВОИХ сообщений
-            var isMine = FromEmail.Equals(Session.Email, StringComparison.OrdinalIgnoreCase);
-
-            if (isMine)
+            get => _status;
+            set
             {
-                var statusRu = Status switch
+                if (_status != value)
                 {
-                    "Delivered" => "доставлено",
-                    "Read" => "прочитано",
-                    _ => "отправлено"
-                };
-
-                return $"{Timestamp:T} вы: {kind}{Text} [{statusRu}]";
-            }
-            else
-            {
-                // чужие сообщения без статуса
-                return $"{Timestamp:T} {FromEmail}: {kind}{Text}";
+                    _status = value;
+                    OnPropertyChanged();           // Status
+                    OnPropertyChanged(nameof(DisplayText)); // для ListBox
+                }
             }
         }
+
+        // Текст, который показываем в ListBox
+        [JsonIgnore]
+        public string DisplayText
+        {
+            get
+            {
+                var kind = IsFile ? $"[Файл: {FileName}] " : "";
+
+                var isMine = FromEmail.Equals(Session.Email,
+                    StringComparison.OrdinalIgnoreCase);
+
+                if (isMine)
+                {
+                    var statusRu = Status switch
+                    {
+                        "Delivered" => "доставлено",
+                        "Read" => "прочитано",
+                        _ => "отправлено"
+                    };
+
+                    return $"{Timestamp:T} вы: {kind}{Text} [{statusRu}]";
+                }
+                else
+                {
+                    return $"{Timestamp:T} {FromEmail}: {kind}{Text}";
+                }
+            }
+        }
+
+        // Чтобы старый код, который вызывает ToString(), тоже работал
+        public override string ToString() => DisplayText;
+
+        // ======= INotifyPropertyChanged =======
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected void OnPropertyChanged([CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
     public class ContactView

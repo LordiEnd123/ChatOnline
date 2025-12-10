@@ -67,8 +67,9 @@
                      Grid.Row="1"
                      Margin="0,0,0,5"
                      MouseDoubleClick="MessagesListBox_MouseDoubleClick"
-                     MouseRightButtonUp="MessagesListBox_MouseRightButtonUp" />
+                     MouseRightButtonUp="MessagesListBox_MouseRightButtonUp">
 
+            </ListBox>
 
             <!-- Ввод сообщения -->
             <DockPanel Grid.Row="2">
