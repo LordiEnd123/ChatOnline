@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
-
+using System.IO;              // ← добавили
+using System.Text.Json;       // ← добавили
+using System.Linq;
 
 namespace ChatServer
 {
@@ -13,6 +15,14 @@ namespace ChatServer
         // Простое хранилище сообщений (в памяти)
         private static readonly List<ChatMessage> _messages = new List<ChatMessage>();
         private static int _nextId = 0;
+
+        // ===== ФАЙЛ ДЛЯ ДИАЛОГОВ =====
+        private const string DialogsFilePath = "dialogs.json";
+
+        // ключ = "email1|email2"
+        private static readonly Dictionary<string, List<ChatMessage>> _dialogs = LoadDialogs();
+
+
 
         // ----- утилита: достаём email из query -----
         private string? GetUserEmail()
@@ -55,8 +65,11 @@ namespace ChatServer
         // ====== ЛИЧНЫЕ СООБЩЕНИЯ ======
 
         // отправка сообщения конкретному пользователю
+        // отправка сообщения конкретному пользователю
         public async Task SendPrivateMessage(string toEmail, string text,
-                                             bool isFile, string? fileName)
+                                     bool isFile, string? fileName,
+                                     byte[]? fileContent)
+
         {
             var fromEmail = GetUserEmail();
             if (string.IsNullOrEmpty(fromEmail))
@@ -71,52 +84,226 @@ namespace ChatServer
                 Timestamp = DateTime.UtcNow,
                 IsFile = isFile,
                 FileName = fileName,
+                FileContent = fileContent,
                 Status = MessageStatus.Sent
             };
 
+            // при желании можно оставить общий список, но для истории нам важен _dialogs
             lock (_messages)
             {
                 _messages.Add(msg);
             }
 
-            // Отправляем отправителю и получателю
+            // ===== добавляем в общий диалог для пары пользователей =====
+            var key = GetDialogKey(fromEmail!, toEmail);
+
+            lock (_dialogs)
+            {
+                if (!_dialogs.TryGetValue(key, out var list))
+                {
+                    list = new List<ChatMessage>();
+                    _dialogs[key] = list;
+                }
+
+                list.Add(msg);
+            }
+
+            // Сохраняем диалоги на диск
+            SaveDialogs();
+            // ===========================================================
+
+            // Отправляем отправителю и получателю (как было)
             var targets = GetConnectionsByEmail(msg.FromEmail)
                 .Concat(GetConnectionsByEmail(msg.ToEmail))
                 .Distinct();
 
-            await Clients.Clients(targets).SendAsync("ReceivePrivateMessage", new
-            {
-                msg.Id,
-                msg.FromEmail,
-                msg.ToEmail,
-                msg.Text,
-                msg.Timestamp,
-                msg.IsFile,
-                msg.FileName,
-                Status = msg.Status.ToString()
-            });
+            await Clients.Clients(targets).SendAsync("ReceivePrivateMessage", msg);
+
         }
 
+
+
         // история диалога между текущим пользователем и otherEmail
-        public Task<List<ChatMessage>> GetDialogMessages(string otherEmail)
+        public Task<List<ChatMessage>> GetDialogMessages(string withEmail)
         {
-            var me = GetUserEmail();
-            if (string.IsNullOrEmpty(me))
+            var currentUserEmail = GetUserEmail() ?? "";
+
+            if (string.IsNullOrWhiteSpace(currentUserEmail) || string.IsNullOrWhiteSpace(withEmail))
                 return Task.FromResult(new List<ChatMessage>());
 
             List<ChatMessage> result;
 
-            lock (_messages)
+            lock (_dialogs)
             {
-                result = _messages
+                // Берём вообще все сообщения из всех диалогов
+                result = _dialogs.Values
+                    .SelectMany(list => list)
                     .Where(m =>
-                        (m.FromEmail == me && m.ToEmail == otherEmail) ||
-                        (m.FromEmail == otherEmail && m.ToEmail == me))
+                        // current -> with
+                        string.Equals(m.FromEmail, currentUserEmail, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(m.ToEmail, withEmail, StringComparison.OrdinalIgnoreCase)
+                        ||
+                        // with -> current
+                        string.Equals(m.FromEmail, withEmail, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(m.ToEmail, currentUserEmail, StringComparison.OrdinalIgnoreCase)
+                    )
                     .OrderBy(m => m.Timestamp)
                     .ToList();
             }
 
             return Task.FromResult(result);
         }
+
+
+
+        private static string GetDialogKey(string user1, string user2)
+        {
+            // ключ не зависит от порядка (A|B и B|A ― одно и то же)
+            return string.CompareOrdinal(user1, user2) < 0
+                ? $"{user1}|{user2}"
+                : $"{user2}|{user1}";
+        }
+
+        // Загружаем диалоги из файла при старте приложения
+        private static Dictionary<string, List<ChatMessage>> LoadDialogs()
+        {
+            try
+            {
+                if (!File.Exists(DialogsFilePath))
+                    return new Dictionary<string, List<ChatMessage>>(StringComparer.OrdinalIgnoreCase);
+
+                var json = File.ReadAllText(DialogsFilePath);
+
+                var allMessages = JsonSerializer.Deserialize<List<ChatMessage>>(
+                    json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                ) ?? new List<ChatMessage>();
+
+                // обновляем счётчик Id, чтобы новые сообщения не начинались с 0
+                if (allMessages.Count > 0)
+                {
+                    _nextId = allMessages.Max(m => m.Id);
+                }
+
+                var dict = new Dictionary<string, List<ChatMessage>>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var m in allMessages)
+                {
+                    var key = GetDialogKey(m.FromEmail, m.ToEmail);
+                    if (!dict.TryGetValue(key, out var list))
+                    {
+                        list = new List<ChatMessage>();
+                        dict[key] = list;
+                    }
+
+                    list.Add(m);
+                }
+
+                return dict;
+            }
+            catch
+            {
+                // если что-то пошло не так — начинаем с пустого словаря
+                return new Dictionary<string, List<ChatMessage>>(StringComparer.OrdinalIgnoreCase);
+            }
+        }
+
+        // Сохраняем все диалоги в один json-файл
+        private static void SaveDialogs()
+        {
+            try
+            {
+                List<ChatMessage> allMessages;
+
+                lock (_dialogs)
+                {
+                    allMessages = _dialogs.Values
+                        .SelectMany(list => list)
+                        .OrderBy(m => m.Timestamp)
+                        .ToList();
+                }
+
+                var json = JsonSerializer.Serialize(
+                    allMessages,
+                    new JsonSerializerOptions { WriteIndented = true });
+
+                File.WriteAllText(DialogsFilePath, json);
+            }
+            catch
+            {
+                // Для ДЗ можно спокойно игнорировать ошибку сохранения
+            }
+        }
+
+        public async Task MarkDelivered(int messageId)
+        {
+            lock (_dialogs)
+            {
+                var msg = _dialogs.Values.SelectMany(x => x).FirstOrDefault(m => m.Id == messageId);
+                if (msg != null)
+                    msg.Status = MessageStatus.Delivered;
+                SaveDialogs();
+            }
+
+            await Clients.All.SendAsync("MessageStatusChanged", messageId, "Delivered");
+        }
+
+        public async Task MarkRead(int messageId)
+        {
+            lock (_dialogs)
+            {
+                var msg = _dialogs.Values.SelectMany(x => x).FirstOrDefault(m => m.Id == messageId);
+                if (msg != null)
+                    msg.Status = MessageStatus.Read;
+                SaveDialogs();
+            }
+
+            await Clients.All.SendAsync("MessageStatusChanged", messageId, "Read");
+        }
+
+        public async Task EditMessage(int messageId, string newText)
+        {
+            lock (_dialogs)
+            {
+                var msg = _dialogs.Values.SelectMany(x => x).FirstOrDefault(m => m.Id == messageId);
+                if (msg != null)
+                {
+                    msg.Text = newText;
+                    msg.Timestamp = DateTime.UtcNow;
+                    SaveDialogs();
+                }
+                else return;
+            }
+
+            await Clients.All.SendAsync("MessageEdited", messageId, newText);
+        }
+
+        public async Task DeleteMessage(int messageId)
+        {
+            bool removed = false;
+
+            lock (_dialogs)
+            {
+                foreach (var list in _dialogs.Values)
+                {
+                    var msg = list.FirstOrDefault(m => m.Id == messageId);
+                    if (msg != null)
+                    {
+                        list.Remove(msg);
+                        removed = true;
+                        break;
+                    }
+                }
+
+                if (removed)
+                    SaveDialogs();
+            }
+
+            if (removed)
+                await Clients.All.SendAsync("MessageDeleted", messageId);
+        }
+
+
+
     }
 }

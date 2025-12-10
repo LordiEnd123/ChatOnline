@@ -17,10 +17,33 @@ namespace ChatClient
         [JsonIgnore]
         public string Status { get; set; } = "Sent";
 
+        public byte[]? FileContent { get; set; }
+
+        public bool IsDeleted { get; set; }
+
         public override string ToString()
         {
             var kind = IsFile ? $"[Файл: {FileName}] " : "";
-            return $"{Timestamp:T} {FromEmail}: {kind}{Text} ({Status})";
+
+            // Показываем статус только для СВОИХ сообщений
+            var isMine = FromEmail.Equals(Session.Email, StringComparison.OrdinalIgnoreCase);
+
+            if (isMine)
+            {
+                var statusRu = Status switch
+                {
+                    "Delivered" => "доставлено",
+                    "Read" => "прочитано",
+                    _ => "отправлено"
+                };
+
+                return $"{Timestamp:T} вы: {kind}{Text} [{statusRu}]";
+            }
+            else
+            {
+                // чужие сообщения без статуса
+                return $"{Timestamp:T} {FromEmail}: {kind}{Text}";
+            }
         }
     }
 

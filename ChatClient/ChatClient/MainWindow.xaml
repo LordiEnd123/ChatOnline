@@ -64,21 +64,35 @@
 
             <!-- Список сообщений -->
             <ListBox x:Name="MessagesListBox"
-                 Grid.Row="1"
-                 Margin="0,0,0,5"/>
+                     Grid.Row="1"
+                     Margin="0,0,0,5"
+                     MouseDoubleClick="MessagesListBox_MouseDoubleClick"
+                     MouseRightButtonUp="MessagesListBox_MouseRightButtonUp" />
+
 
             <!-- Ввод сообщения -->
             <DockPanel Grid.Row="2">
                 <TextBox x:Name="MessageTextBox"
-                     Margin="0,0,5,0"
-                     DockPanel.Dock="Left"
-                     KeyDown="MessageTextBox_KeyDown"/>
+                         Margin="0,0,5,0"
+                         DockPanel.Dock="Left"
+                         KeyDown="MessageTextBox_KeyDown"/>
+
+                <!-- Кнопка для отправки файла -->
+                <Button x:Name="AttachButton"
+                        Content="Файл..."
+                        Width="70"
+                        Margin="0,0,5,0"
+                        DockPanel.Dock="Right"
+                        Click="AttachButton_Click"/>
+
+                <!-- Кнопка отправки текста -->
                 <Button x:Name="SendButton"
-                    Content="Отправить"
-                    Width="90"
-                    DockPanel.Dock="Right"
-                    Click="SendButton_Click"/>
+                        Content="Отправить"
+                        Width="90"
+                        DockPanel.Dock="Right"
+                        Click="SendButton_Click"/>
             </DockPanel>
+
         </Grid>
     </Grid>
 

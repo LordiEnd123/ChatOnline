@@ -19,5 +19,9 @@
         public string? FileName { get; set; }     // имя файла (мы сами файл не храним)
 
         public MessageStatus Status { get; set; }
+
+        public byte[]? FileContent { get; set; }
+
+        public bool IsDeleted { get; set; } = false;
     }
 }
