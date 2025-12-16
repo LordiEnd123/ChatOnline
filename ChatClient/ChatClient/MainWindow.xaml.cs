@@ -47,12 +47,19 @@ namespace ChatClient
 
             InitializeConnection();
 
+
             // Загрузка контактов
             _ = LoadContactsAsync();
+
+            Activated += (_, _) => NotificationService.IsAppActive = true;
+            Deactivated += (_, _) => NotificationService.IsAppActive = false;
+            StateChanged += (_, _) => NotificationService.IsAppActive = WindowState != WindowState.Minimized;
+
         }
 
         // Иницилизация подключения
         private const string ServerBaseUrl = "http://192.168.1.105:5099";
+
 
 
         private void InitializeConnection()
@@ -96,6 +103,64 @@ namespace ChatClient
             _connection.On<int, string>("MessageStatusChanged", OnMessageStatusChanged);
             _connection.On<int, string>("MessageEdited", OnMessageEdited);
             _connection.On<int>("MessageDeleted", OnMessageDeleted);
+
+            _connection.On<UserDto>("UserProfileChanged", (u) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    // обновляем контакт в списке
+                    var c = _contacts.FirstOrDefault(x =>
+                        x.Email.Equals(u.Email, StringComparison.OrdinalIgnoreCase));
+                    if (c != null)
+                    {
+                        c.Name = u.Name;
+
+                        if (!string.IsNullOrWhiteSpace(u.AvatarUrl))
+                        {
+                            // ✅ анти-кэш, чтобы картинка перезагрузилась
+                            var url = (u.AvatarUrl.StartsWith("/") ? ServerBaseUrl + u.AvatarUrl : u.AvatarUrl);
+                            url += (url.Contains("?") ? "&" : "?") + "v=" + DateTime.UtcNow.Ticks;
+
+                            c.AvatarPath = url;
+                        }
+                        else
+                        {
+                            c.AvatarPath = null;
+                        }
+                    }
+
+                    // если обновился текущий выбранный контакт — принудительно обновим отображение
+                    if (ContactsListBox.SelectedItem == c)
+                    {
+                        ContactsListBox.Items.Refresh();
+                    }
+                });
+            });
+
+
+            _connection.On<string, string>("UserStatusChanged",
+                (email, status) =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        // 1️⃣ обновляем статус в списке контактов
+                        var contact = _contacts.FirstOrDefault(c =>
+                            c.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+
+                        if (contact != null)
+                        {
+                            contact.Status = NormalizeStatus(status);
+
+                        }
+
+                        // 2️⃣ если это текущий диалог — обновляем хедер
+                        if (_currentDialogEmail == email)
+                        {
+
+                        }
+                    });
+                });
+
 
             ConnectToServer();
         }
@@ -150,11 +215,21 @@ namespace ChatClient
 
                 foreach (var u in users.Where(u => u.Email != Session.Email))
                 {
+                    string? avatar = null;
+
+                    if (!string.IsNullOrWhiteSpace(u.AvatarUrl))
+                    {
+                        avatar = $"{ServerBaseUrl}{u.AvatarUrl}";
+                    }
+
                     _contacts.Add(new ContactView
                     {
                         Email = u.Email,
-                        Name = u.Name
+                        Name = u.Name,
+                        AvatarPath = avatar,
+                        Status = NormalizeStatus(u.Status)
                     });
+
                 }
             }
             catch { }
@@ -168,6 +243,17 @@ namespace ChatClient
             var msg = JsonSerializer.Deserialize<ChatMessageView>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
             if (msg == null) return;
+
+            System.Diagnostics.Debug.WriteLine($"IN MSG from={msg.FromEmail} to={msg.ToEmail} text={msg.Text}");
+            NotificationService.Show(msg);
+
+
+
+            if (string.Equals(msg.ToEmail, Session.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                NotificationService.Show(msg);
+            }
+
 
             Dispatcher.Invoke(() =>
             {
@@ -273,6 +359,9 @@ namespace ChatClient
 
             _currentDialogEmail = contact.Email;
 
+            NotificationService.ActiveDialogEmail = _currentDialogEmail;
+
+
             try
             {
                 var messages = await _connection.InvokeAsync<List<ChatMessageView>>("GetDialogMessages", _currentDialogEmail);
@@ -324,14 +413,14 @@ namespace ChatClient
 
         private void ProfileButton_Click(object sender, RoutedEventArgs e)
         {
-            var profileWindow = new ProfileWindow
-            {
-                Owner = this
-            };
+            var profileWindow = new ProfileWindow { Owner = this };
             profileWindow.ShowDialog();
 
             UserNameTextBox.Text = Session.Name;
+
+            _ = LoadContactsAsync(); // ✅ обновит аватары/имена
         }
+
 
         // Выход
 
@@ -560,5 +649,24 @@ namespace ChatClient
                 });
             }
         }
+
+        private static string NormalizeStatus(object? s)
+        {
+            if (s == null) return "Offline";
+
+            // если вдруг пришло числом
+            if (s is int n)
+                return n switch { 1 => "Online", 2 => "DoNotDisturb", _ => "Offline" };
+
+            var str = s.ToString()?.Trim() ?? "";
+            if (int.TryParse(str, out var n2))
+                return n2 switch { 1 => "Online", 2 => "DoNotDisturb", _ => "Offline" };
+
+            if (str.Equals("DoNotDisturb", StringComparison.OrdinalIgnoreCase)) return "DoNotDisturb";
+            if (str.Equals("Online", StringComparison.OrdinalIgnoreCase)) return "Online";
+            return "Offline";
+        }
+
+
     }
 }

@@ -1,4 +1,4 @@
-using ChatServer;
+﻿using ChatServer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +22,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
+app.UseStaticFiles();
 app.MapControllers();
 
 app.MapHub<ChatHub>("/chat");

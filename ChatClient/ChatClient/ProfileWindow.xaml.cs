@@ -1,15 +1,22 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using System;
+using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
+using Microsoft.Win32;
+using System.IO;
+using System.Net.Http.Headers;
+
 
 namespace ChatClient
 {
     public partial class ProfileWindow : Window
     {
-        private const string BaseUrl = "https://localhost:7090";
+        private const string BaseUrl = "http://192.168.1.105:5099";
 
         private readonly HttpClient _httpClient = new HttpClient(
             new HttpClientHandler
@@ -17,10 +24,17 @@ namespace ChatClient
                 ServerCertificateCustomValidationCallback = (_, _, _, _) => true
             });
 
+        private HubConnection? _hub;
+
         public ProfileWindow()
         {
             InitializeComponent();
+
+            // 1) загрузка профиля
             LoadProfile();
+
+            // 2) подключение к SignalR (для SetStatus после сохранения)
+            _ = EnsureHubConnectedAsync();
         }
 
         private class UserDto
@@ -61,6 +75,56 @@ namespace ChatClient
             public string NewPassword { get; set; } = null!;
         }
 
+        private async Task EnsureHubConnectedAsync()
+        {
+            try
+            {
+                // если уже подключены — ок
+                if (_hub != null && _hub.State == HubConnectionState.Connected)
+                    return;
+
+                // если было старое подключение — аккуратно закрываем
+                if (_hub != null)
+                {
+                    try { await _hub.StopAsync(); } catch { }
+                    try { await _hub.DisposeAsync(); } catch { }
+                    _hub = null;
+                }
+
+                var email = string.IsNullOrWhiteSpace(Session.Email) ? "anonymous@example.com" : Session.Email;
+                var hubUrl = $"{BaseUrl}/chat?user={Uri.EscapeDataString(email)}";
+
+                _hub = new HubConnectionBuilder()
+                    .WithUrl(hubUrl)
+                    .WithAutomaticReconnect()
+                    .Build();
+
+                await _hub.StartAsync();
+            }
+            catch
+            {
+                // Не критично — профиль всё равно сохраняется через HTTP
+            }
+        }
+
+        private async Task TryPushStatusToHubAsync(int status)
+        {
+            try
+            {
+                await EnsureHubConnectedAsync();
+
+                if (_hub != null && _hub.State == HubConnectionState.Connected)
+                {
+                    // отправляем int (0/1/2)
+                    await _hub.InvokeAsync("SetStatus", status);
+                }
+            }
+            catch
+            {
+                // не критично
+            }
+        }
+
         private async void LoadProfile()
         {
             try
@@ -74,7 +138,8 @@ namespace ChatClient
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
-                var user = JsonSerializer.Deserialize<UserDto>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var user = JsonSerializer.Deserialize<UserDto>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
                 if (user == null)
                 {
@@ -94,18 +159,41 @@ namespace ChatClient
                 SoundEnabledCheckBox.IsChecked = user.SoundEnabled;
                 BannerEnabledCheckBox.IsChecked = user.BannerEnabled;
 
+                NotificationService.NotificationsEnabled = user.NotificationsEnabled;
+                NotificationService.SoundEnabled = user.SoundEnabled;
+                NotificationService.BannerEnabled = user.BannerEnabled;
+
                 // Аватар
                 if (!string.IsNullOrWhiteSpace(user.AvatarUrl))
                 {
                     try
                     {
-                        AvatarImage.Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(user.AvatarUrl));
+                        // user.AvatarUrl = "/avatars/....png"
+                        var url = user.AvatarUrl.StartsWith("/")
+                            ? BaseUrl + user.AvatarUrl
+                            : user.AvatarUrl;
+
+                        // чтобы не мешал кэш
+                        url += (url.Contains("?") ? "&" : "?") + "v=" + DateTime.UtcNow.Ticks;
+
+                        var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                        bmp.BeginInit();
+                        bmp.UriSource = new Uri(url, UriKind.Absolute);
+                        bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                        bmp.EndInit();
+
+                        AvatarImage.Source = bmp;
                     }
                     catch
                     {
                         AvatarImage.Source = null;
                     }
                 }
+                else
+                {
+                    AvatarImage.Source = null;
+                }
+
             }
             catch (Exception ex)
             {
@@ -141,9 +229,24 @@ namespace ChatClient
                     return;
                 }
 
+                // локально обновим
+                Session.Name = req.Name;
+                Session.Status = req.Status switch
+                {
+                    1 => "Online",
+                    2 => "DoNotDisturb",
+                    _ => "Offline"
+                };
+
+                NotificationService.NotificationsEnabled = req.NotificationsEnabled;
+                NotificationService.SoundEnabled = req.SoundEnabled;
+                NotificationService.BannerEnabled = req.BannerEnabled;
+
+                // 🔥 главное: пушим статус в SignalR, чтобы все клиенты сразу обновились
+                await TryPushStatusToHubAsync(req.Status);
+
                 StatusTextBlock.Foreground = Brushes.Green;
                 StatusTextBlock.Text = "Профиль сохранён.";
-                Session.Name = req.Name;
             }
             catch (Exception ex)
             {
@@ -182,8 +285,13 @@ namespace ChatClient
                     return;
                 }
 
+                // обновляем сессию
                 Session.Email = newEmail;
                 EmailTextBlock.Text = newEmail;
+
+                // переподключаем Hub под новым email
+                await EnsureHubConnectedAsync();
+
                 StatusTextBlock.Foreground = Brushes.Green;
                 StatusTextBlock.Text = "Email изменён.";
             }
@@ -239,9 +347,79 @@ namespace ChatClient
             }
         }
 
-        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        private async void CloseButton_Click(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                if (_hub != null)
+                {
+                    try { await _hub.StopAsync(); } catch { }
+                    try { await _hub.DisposeAsync(); } catch { }
+                    _hub = null;
+                }
+            }
+            catch { }
+
             Close();
         }
+
+        private async void ChooseAvatarButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new OpenFileDialog
+            {
+                Title = "Выберите аватар",
+                Filter = "Images (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg"
+            };
+
+            if (dlg.ShowDialog() != true)
+                return;
+
+            try
+            {
+                using var form = new MultipartFormDataContent();
+
+                await using var stream = File.OpenRead(dlg.FileName);
+                var fileContent = new StreamContent(stream);
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+                form.Add(fileContent, "file", Path.GetFileName(dlg.FileName));
+                form.Add(new StringContent(Session.Email), "email");
+
+                var resp = await _httpClient.PostAsync($"{BaseUrl}/api/Profile/avatar", form);
+                if (!resp.IsSuccessStatusCode)
+                {
+                    StatusTextBlock.Text = "Не удалось загрузить аватар.";
+                    return;
+                }
+
+                var body = await resp.Content.ReadAsStringAsync();
+                var user = JsonSerializer.Deserialize<UserDto>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (user == null || string.IsNullOrWhiteSpace(user.AvatarUrl))
+                {
+                    StatusTextBlock.Text = "Сервер не вернул AvatarUrl.";
+                    return;
+                }
+
+                // показать URL в поле
+                AvatarTextBox.Text = user.AvatarUrl;
+
+                // показать картинку (делаем абсолютный URL)
+                var url = user.AvatarUrl.StartsWith("/") ? BaseUrl + user.AvatarUrl : user.AvatarUrl;
+                url += (url.Contains("?") ? "&" : "?") + "v=" + DateTime.UtcNow.Ticks;
+
+                AvatarImage.Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(url));
+
+                StatusTextBlock.Text = "Аватар обновлён.";
+            }
+            catch (Exception ex)
+            {
+                StatusTextBlock.Text = "Ошибка: " + ex.Message;
+            }
+        }
+
+
+
+
     }
 }

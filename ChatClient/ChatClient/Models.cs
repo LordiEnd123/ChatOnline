@@ -2,6 +2,9 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Windows.Media;
 
 namespace ChatClient
 {
@@ -70,9 +73,42 @@ namespace ChatClient
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
-    public class ContactView
+    public class ContactView : INotifyPropertyChanged
     {
         public string Email { get; set; } = "";
         public string Name { get; set; } = "";
+        public string? AvatarPath { get; set; }
+
+        private string _status = "Offline"; // "Online" | "Offline" | "DoNotDisturb"
+        public string Status
+        {
+            get => _status;
+            set
+            {
+                if (_status == value) return;
+                _status = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(StatusText));
+                OnPropertyChanged(nameof(StatusColor));
+            }
+        }
+
+        public string StatusText => Status switch
+        {
+            "Online" => "онлайн",
+            "DoNotDisturb" => "не беспокоить",
+            _ => "офлайн"
+        };
+
+        public Brush StatusColor => Status switch
+        {
+            "Online" => Brushes.LimeGreen,
+            "DoNotDisturb" => Brushes.OrangeRed,
+            _ => Brushes.Gray
+        };
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }

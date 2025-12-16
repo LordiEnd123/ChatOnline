@@ -21,6 +21,7 @@ namespace ChatClient
         public static class ApiConfig
         {
             public const string ServerBaseUrl = "http://192.168.1.105:5099";
+
         }
 
         // DTO для логина

@@ -2,37 +2,83 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Онлайн чат" Height="450" Width="800">
+
     <Grid Margin="10">
         <Grid.ColumnDefinitions>
-            <!-- Левая колонка: контакты -->
             <ColumnDefinition Width="220"/>
-            <!-- Правая колонка: чат -->
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
         <!-- ====== СПИСОК КОНТАКТОВ ====== -->
         <DockPanel Grid.Column="0" Margin="0,0,10,0">
-            <TextBlock Text="Контакты" FontWeight="Bold" DockPanel.Dock="Top"/>
+            <TextBlock Text="Контакты"
+                       FontWeight="Bold"
+                       DockPanel.Dock="Top"
+                       Margin="0,0,0,5"/>
 
-            <StackPanel DockPanel.Dock="Top" Margin="0,5,0,5">
+            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,5">
                 <TextBox x:Name="SearchContactTextBox"
                          Width="200"
                          Margin="0,0,0,5"/>
                 <Button Content="Найти"
-                    Width="80"
-                    Click="FindContactButton_Click"/>
+                        Width="80"
+                        Click="FindContactButton_Click"/>
             </StackPanel>
 
             <ListBox x:Name="ContactsListBox"
-                 DockPanel.Dock="Bottom"
-                 Height="300"
-                 SelectionChanged="ContactsListBox_SelectionChanged"
-                 DisplayMemberPath="Email"/>
+                     DockPanel.Dock="Bottom"
+                     Height="300"
+                     SelectionChanged="ContactsListBox_SelectionChanged">
+
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="48"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- АВАТАР -->
+                            <Grid Width="40" Height="40">
+                                <!-- Круглый аватар -->
+                                <Ellipse Width="40" Height="40">
+                                    <Ellipse.Fill>
+                                        <ImageBrush ImageSource="{Binding AvatarPath}"
+                                    Stretch="UniformToFill"/>
+                                    </Ellipse.Fill>
+                                </Ellipse>
+
+                                <!-- Индикатор статуса -->
+                                <Ellipse Width="10"
+                                         Height="10"
+                                         Fill="{Binding StatusColor}"
+                                         Stroke="White"
+                                         StrokeThickness="1.5"
+                                         HorizontalAlignment="Right"
+                                         VerticalAlignment="Bottom"
+                                         Margin="0,0,1,1"/>
+                            </Grid>
+
+                            <!-- ИМЯ + СТАТУС -->
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Name}"
+                                           FontWeight="SemiBold"
+                                           FontSize="13"/>
+                                                <TextBlock Text="{Binding StatusText}"
+                                           Foreground="Gray"
+                                           FontSize="11"/>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+
+            </ListBox>
         </DockPanel>
 
         <!-- ====== ОБЛАСТЬ ЧАТА ====== -->
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
@@ -40,61 +86,55 @@
 
             <!-- Верхняя панель -->
             <StackPanel Grid.Row="0"
-                    Orientation="Horizontal"
-                    Margin="0,0,0,5">
+                        Orientation="Horizontal"
+                        Margin="0,0,0,5">
+
                 <TextBlock Text="Имя:" VerticalAlignment="Center"/>
                 <TextBox x:Name="UserNameTextBox"
-                     Width="120"
-                     Margin="5,0,10,0"/>
+                         Width="120"
+                         Margin="5,0,10,0"/>
 
                 <TextBlock Text="Статус:" VerticalAlignment="Center"/>
                 <TextBlock x:Name="ConnectionStatusTextBlock"
-                       Margin="5,0,10,0"
-                       VerticalAlignment="Center"
-                       Foreground="Gray"/>
+                           Margin="5,0,10,0"
+                           VerticalAlignment="Center"
+                           Foreground="Gray"/>
 
                 <Button Content="Профиль"
-                    Width="80"
-                    Margin="0,0,5,0"
-                    Click="ProfileButton_Click"/>
+                        Width="80"
+                        Margin="0,0,5,0"
+                        Click="ProfileButton_Click"/>
+
                 <Button Content="Выйти"
-                    Width="80"
-                    Click="LogoutButton_Click"/>
+                        Width="80"
+                        Click="LogoutButton_Click"/>
             </StackPanel>
 
-            <!-- Список сообщений -->
+            <!-- Сообщения -->
             <ListBox x:Name="MessagesListBox"
-                     Grid.Row="1"
+                     Grid.Row="2"
                      Margin="0,0,0,5"
                      MouseDoubleClick="MessagesListBox_MouseDoubleClick"
-                     MouseRightButtonUp="MessagesListBox_MouseRightButtonUp">
+                     MouseRightButtonUp="MessagesListBox_MouseRightButtonUp"/>
 
-            </ListBox>
-
-            <!-- Ввод сообщения -->
-            <DockPanel Grid.Row="2">
+            <!-- Ввод -->
+            <DockPanel Grid.Row="3">
                 <TextBox x:Name="MessageTextBox"
                          Margin="0,0,5,0"
                          DockPanel.Dock="Left"
                          KeyDown="MessageTextBox_KeyDown"/>
 
-                <!-- Кнопка для отправки файла -->
-                <Button x:Name="AttachButton"
-                        Content="Файл..."
+                <Button Content="Файл..."
                         Width="70"
                         Margin="0,0,5,0"
                         DockPanel.Dock="Right"
                         Click="AttachButton_Click"/>
 
-                <!-- Кнопка отправки текста -->
-                <Button x:Name="SendButton"
-                        Content="Отправить"
+                <Button Content="Отправить"
                         Width="90"
                         DockPanel.Dock="Right"
                         Click="SendButton_Click"/>
             </DockPanel>
-
         </Grid>
     </Grid>
-
 </Window>

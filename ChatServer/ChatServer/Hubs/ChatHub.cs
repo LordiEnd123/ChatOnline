@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using ChatServer.Models;
+using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
 using System.IO; 
-using System.Text.Json;
 using System.Linq;
+using System.Text.Json;
 
 namespace ChatServer
 {
@@ -31,22 +32,50 @@ namespace ChatServer
         }
 
         // Подключение и отключение
-        public override Task OnConnectedAsync()
+        public override async Task OnConnectedAsync()
         {
             var email = GetUserEmail();
             if (!string.IsNullOrEmpty(email))
             {
                 _connections[Context.ConnectionId] = email!;
+
+                var user = ChatServer.Models.UserStore.GetByEmail(email!);
+                if (user != null)
+                {
+                    user.Status = ChatServer.Models.UserStatus.Online;
+                    ChatServer.Models.UserStore.UpdateUser(user);
+
+                    await Clients.All.SendAsync("UserStatusChanged", user.Email, user.Status.ToString());
+                }
+
             }
 
-            return base.OnConnectedAsync();
+            await base.OnConnectedAsync();
         }
 
-        public override Task OnDisconnectedAsync(Exception? exception)
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            _connections.TryRemove(Context.ConnectionId, out _);
-            return base.OnDisconnectedAsync(exception);
+            if (_connections.TryRemove(Context.ConnectionId, out var email))
+            {
+                // если у пользователя больше нет активных соединений
+                if (!GetConnectionsByEmail(email).Any())
+                {
+                    var user = ChatServer.Models.UserStore.GetByEmail(email);
+                    if (user != null)
+                    {
+                        user.Status = ChatServer.Models.UserStatus.Offline;
+                        ChatServer.Models.UserStore.UpdateUser(user);
+
+                        await Clients.All.SendAsync("UserStatusChanged", user.Email, user.Status.ToString());
+                    }
+
+                }
+            }
+
+            await base.OnDisconnectedAsync(exception);
         }
+
 
         private IEnumerable<string> GetConnectionsByEmail(string email)
         {
@@ -277,5 +306,24 @@ namespace ChatServer
             if (removed)
                 await Clients.All.SendAsync("MessageDeleted", messageId);
         }
+
+        public async Task SetStatus(int status)
+        {
+            var email = GetUserEmail();
+            if (string.IsNullOrEmpty(email))
+                return;
+
+            var user = UserStore.GetByEmail(email);
+            if (user == null)
+                return;
+
+            user.Status = (UserStatus)status; // 0/1/2
+            UserStore.UpdateUser(user);
+
+            await Clients.All.SendAsync("UserStatusChanged", user.Email, user.Status.ToString());
+        }
+
+
+
     }
 }

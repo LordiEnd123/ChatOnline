@@ -1,6 +1,9 @@
-﻿using ChatServer.Dtos;
+﻿using ChatServer;
+using ChatServer.Dtos;
 using ChatServer.Models;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace ChatServer.Controllers;
 
@@ -8,6 +11,15 @@ namespace ChatServer.Controllers;
 [Route("api/[controller]")]
 public class ProfileController : ControllerBase
 {
+    private readonly IWebHostEnvironment _env;
+    private readonly IHubContext<ChatHub> _hub;
+
+    public ProfileController(IWebHostEnvironment env, IHubContext<ChatHub> hub)
+    {
+        _env = env;
+        _hub = hub;
+    }
+
     // Получить профиль по email
     [HttpGet("{email}")]
     public ActionResult<UserDto> GetProfile(string email)
@@ -21,7 +33,7 @@ public class ProfileController : ControllerBase
 
     // Обновить профиль
     [HttpPut("update")]
-    public ActionResult<UserDto> UpdateProfile([FromBody] UpdateProfileRequest request)
+    public async Task<ActionResult<UserDto>> UpdateProfile([FromBody] UpdateProfileRequest request)
     {
         var user = UserStore.GetByEmail(request.Email);
         if (user == null)
@@ -36,6 +48,10 @@ public class ProfileController : ControllerBase
         user.BannerEnabled = request.BannerEnabled;
 
         UserStore.UpdateUser(user);
+
+        // ✅ уведомляем всех клиентов (чтобы обновили аватар/имя без перезапуска)
+        await _hub.Clients.All.SendAsync("UserProfileChanged", UserDto.FromUser(user));
+
         return Ok(UserDto.FromUser(user));
     }
 
@@ -75,5 +91,43 @@ public class ProfileController : ControllerBase
         UserStore.UpdateUser(user);
 
         return Ok("Пароль успешно изменён.");
+    }
+
+    [ApiExplorerSettings(IgnoreApi = true)]
+    [HttpPost("avatar")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadAvatar([FromForm] IFormFile file, [FromForm] string email)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("Файл не передан");
+
+        var user = UserStore.GetByEmail(email);
+        if (user == null)
+            return NotFound("Пользователь не найден");
+
+        // wwwroot/avatars
+        var avatarsDir = Path.Combine(_env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot"), "avatars");
+        Directory.CreateDirectory(avatarsDir);
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(ext)) ext = ".png";
+
+        var fileName = $"{user.Id}{ext}";
+        var fullPath = Path.Combine(avatarsDir, fileName);
+
+        await using (var stream = System.IO.File.Create(fullPath))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        user.AvatarUrl = $"/avatars/{fileName}";
+        UserStore.UpdateUser(user);
+
+        var dto = UserDto.FromUser(user);
+
+        // ✅ уведомляем всех клиентов
+        await _hub.Clients.All.SendAsync("UserProfileChanged", dto);
+
+        return Ok(dto);
     }
 }
