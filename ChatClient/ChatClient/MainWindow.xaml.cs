@@ -240,30 +240,35 @@ namespace ChatClient
         private async void OnReceivePrivateMessage(object raw)
         {
             var json = JsonSerializer.Serialize(raw);
-            var msg = JsonSerializer.Deserialize<ChatMessageView>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var msg = JsonSerializer.Deserialize<ChatMessageView>(json,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
             if (msg == null) return;
 
-            System.Diagnostics.Debug.WriteLine($"IN MSG from={msg.FromEmail} to={msg.ToEmail} text={msg.Text}");
-            NotificationService.Show(msg);
-
-
-
-            if (string.Equals(msg.ToEmail, Session.Email, StringComparison.OrdinalIgnoreCase))
-            {
-                NotificationService.Show(msg);
-            }
-
-
             Dispatcher.Invoke(() =>
             {
-                if (_currentDialogEmail == null || msg.FromEmail == _currentDialogEmail || msg.ToEmail == _currentDialogEmail)
+                // добавляем в текущий список сообщений, если подходит под открытый диалог
+                if (_currentDialogEmail == null ||
+                    msg.FromEmail == _currentDialogEmail ||
+                    msg.ToEmail == _currentDialogEmail)
                 {
                     _currentMessages.Add(msg);
                 }
             });
 
-            if (string.Equals(msg.ToEmail, Session.Email, StringComparison.OrdinalIgnoreCase))
+            // ✅ УВЕДОМЛЕНИЯ ТОЛЬКО ДЛЯ ВХОДЯЩИХ
+            var isIncoming = string.Equals(msg.ToEmail, Session.Email, StringComparison.OrdinalIgnoreCase);
+
+            // если открыт диалог с этим человеком — не пиликаем
+            var isActiveDialog = string.Equals(_currentDialogEmail, msg.FromEmail, StringComparison.OrdinalIgnoreCase);
+
+            if (isIncoming && !isActiveDialog)
+            {
+                NotificationService.Show(msg);
+            }
+
+            // отметить доставлено/прочитано только для входящих
+            if (isIncoming)
             {
                 try
                 {
@@ -273,6 +278,7 @@ namespace ChatClient
                 catch { }
             }
         }
+
 
 
         private void OnMessageStatusChanged(int id, string status)
