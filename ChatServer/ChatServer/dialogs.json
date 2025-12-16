@@ -934,5 +934,89 @@
     "Status": 0,
     "FileContent": null,
     "IsDeleted": false
+  },
+  {
+    "Id": 84,
+    "FromEmail": "t@",
+    "ToEmail": "f2",
+    "Text": "\u0447\u0442\u043E \u043D\u0438\u0431\u0443\u0434\u044C ",
+    "Timestamp": "2025-12-16T11:29:17.2425061Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
+  },
+  {
+    "Id": 85,
+    "FromEmail": "f2",
+    "ToEmail": "t@",
+    "Text": "\u0441\u0430\u043B\u0430\u043C",
+    "Timestamp": "2025-12-16T11:29:36.2471219Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
+  },
+  {
+    "Id": 86,
+    "FromEmail": "f2",
+    "ToEmail": "t@",
+    "Text": "\u0432\u044B\u0444\u0432\u0444\u044B",
+    "Timestamp": "2025-12-16T11:36:42.2504563Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
+  },
+  {
+    "Id": 87,
+    "FromEmail": "t@",
+    "ToEmail": "f2",
+    "Text": "\u043F\u0432\u0430\u043F\u0432\u0430\u043F\u0432\u044B",
+    "Timestamp": "2025-12-16T11:36:56.9946129Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
+  },
+  {
+    "Id": 88,
+    "FromEmail": "f2",
+    "ToEmail": "t@",
+    "Text": "\u0432\u044B\u0444\u0432\u044B\u0444",
+    "Timestamp": "2025-12-16T11:37:08.7027597Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
+  },
+  {
+    "Id": 89,
+    "FromEmail": "f2",
+    "ToEmail": "t@",
+    "Text": "\u0432\u0432\u0432",
+    "Timestamp": "2025-12-16T11:38:43.9912028Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
+  },
+  {
+    "Id": 90,
+    "FromEmail": "f2",
+    "ToEmail": "t@",
+    "Text": "\u043B\u043E\u0445",
+    "Timestamp": "2025-12-16T11:40:45.3189331Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
   }
 ]

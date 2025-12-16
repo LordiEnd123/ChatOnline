@@ -408,7 +408,14 @@ namespace ChatClient
                 var url = user.AvatarUrl.StartsWith("/") ? BaseUrl + user.AvatarUrl : user.AvatarUrl;
                 url += (url.Contains("?") ? "&" : "?") + "v=" + DateTime.UtcNow.Ticks;
 
-                AvatarImage.Source = new System.Windows.Media.Imaging.BitmapImage(new Uri(url));
+                var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                bmp.BeginInit();
+                bmp.UriSource = new Uri(url, UriKind.Absolute);
+                bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                bmp.CreateOptions = System.Windows.Media.Imaging.BitmapCreateOptions.IgnoreImageCache;
+                bmp.EndInit();
+                AvatarImage.Source = bmp;
+
 
                 StatusTextBlock.Text = "Аватар обновлён.";
             }

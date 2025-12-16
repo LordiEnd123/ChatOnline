@@ -1,4 +1,5 @@
-﻿using ChatServer.Models;
+﻿using ChatServer.Dtos;
+using ChatServer.Models;
 using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
 using System.IO; 
@@ -321,6 +322,11 @@ namespace ChatServer
             UserStore.UpdateUser(user);
 
             await Clients.All.SendAsync("UserStatusChanged", user.Email, user.Status.ToString());
+        }
+
+        public async Task BroadcastUserProfileChanged(UserDto user)
+        {
+            await Clients.All.SendAsync("UserProfileChanged", user);
         }
 
 

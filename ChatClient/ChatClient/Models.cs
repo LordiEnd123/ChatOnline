@@ -75,17 +75,35 @@ namespace ChatClient
 
     public class ContactView : INotifyPropertyChanged
     {
-        public string Email { get; set; } = "";
-        public string Name { get; set; } = "";
-        public string? AvatarPath { get; set; }
+        private string _email = "";
+        private string _name = "";
+        private string? _avatarPath;
+        private string _status = "Offline";
 
-        private string _status = "Offline"; // "Online" | "Offline" | "DoNotDisturb"
+        public string Email
+        {
+            get => _email;
+            set { _email = value; OnPropertyChanged(); }
+        }
+
+        public string Name
+        {
+            get => _name;
+            set { _name = value; OnPropertyChanged(); }
+        }
+
+        public string? AvatarPath
+        {
+            get => _avatarPath;
+            set { _avatarPath = value; OnPropertyChanged(); }
+        }
+
+        // "Online" / "Offline" / "Dnd"
         public string Status
         {
             get => _status;
             set
             {
-                if (_status == value) return;
                 _status = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(StatusText));
@@ -96,14 +114,14 @@ namespace ChatClient
         public string StatusText => Status switch
         {
             "Online" => "онлайн",
-            "DoNotDisturb" => "не беспокоить",
+            "Dnd" => "не беспокоить",
             _ => "офлайн"
         };
 
         public Brush StatusColor => Status switch
         {
             "Online" => Brushes.LimeGreen,
-            "DoNotDisturb" => Brushes.OrangeRed,
+            "Dnd" => Brushes.OrangeRed,
             _ => Brushes.Gray
         };
 

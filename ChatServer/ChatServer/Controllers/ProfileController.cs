@@ -14,10 +14,12 @@ public class ProfileController : ControllerBase
     private readonly IWebHostEnvironment _env;
     private readonly IHubContext<ChatHub> _hub;
 
-    public ProfileController(IWebHostEnvironment env, IHubContext<ChatHub> hub)
+    private readonly IHubContext<ChatHub> _hubContext;
+
+    public ProfileController(IWebHostEnvironment env, IHubContext<ChatHub> hubContext)
     {
         _env = env;
-        _hub = hub;
+        _hubContext = hubContext;
     }
 
     // Получить профиль по email
@@ -124,10 +126,8 @@ public class ProfileController : ControllerBase
         UserStore.UpdateUser(user);
 
         var dto = UserDto.FromUser(user);
-
-        // ✅ уведомляем всех клиентов
-        await _hub.Clients.All.SendAsync("UserProfileChanged", dto);
-
+        await _hubContext.Clients.All.SendAsync("UserProfileChanged", dto);
         return Ok(dto);
+
     }
 }
