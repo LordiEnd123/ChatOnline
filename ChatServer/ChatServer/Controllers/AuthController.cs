@@ -59,21 +59,15 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public ActionResult<UserDto> Login([FromBody] LoginRequest request)
     {
-        var email = request.Email.Trim();
-
-        var user = UserStore.GetByEmail(email);
+        var user = UserStore.GetByEmail(request.Email);
         if (user == null || user.Password != request.Password)
             return Unauthorized("Неверный email или пароль.");
 
-        if (!user.EmailConfirmed)
-            return Unauthorized("Подтвердите email перед входом.");
-
+        // Если был Offline, ставим Online. Если был DoNotDisturb или Online — оставляем.
         if (user.Status == UserStatus.Offline)
             user.Status = UserStatus.Online;
 
         UserStore.UpdateUser(user);
-
-
         return Ok(UserDto.FromUser(user));
     }
 

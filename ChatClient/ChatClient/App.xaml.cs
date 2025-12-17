@@ -1,6 +1,4 @@
-﻿using Hardcodet.Wpf.TaskbarNotification;
-using System;
-using System.Windows;
+﻿using System.Windows;
 
 namespace ChatClient
 {
@@ -13,7 +11,7 @@ namespace ChatClient
             // Инициализируем трей один раз при старте
             NotificationService.InitTray();
 
-            // Открываем логин (если у тебя StartupUri — можно убрать этот кусок)
+            // Открываем логин
             var w = new LoginWindow();
             w.Show();
         }

@@ -247,28 +247,46 @@ namespace ChatServer
 
         public async Task MarkDelivered(int messageId)
         {
+            ChatMessage? msg;
             lock (_dialogs)
             {
-                var msg = _dialogs.Values.SelectMany(x => x).FirstOrDefault(m => m.Id == messageId);
-                if (msg != null)
-                    msg.Status = MessageStatus.Delivered;
+                msg = _dialogs.Values.SelectMany(x => x).FirstOrDefault(m => m.Id == messageId);
+                if (msg == null) return;
+
+                msg.Status = MessageStatus.Delivered;
                 SaveDialogs();
             }
 
-            await Clients.All.SendAsync("MessageStatusChanged", messageId, "Delivered");
+            // ✅ отправляем только двум участникам диалога
+            var targets = GetConnectionsByEmail(msg.FromEmail)
+                .Concat(GetConnectionsByEmail(msg.ToEmail))
+                .Distinct()
+                .ToList();
+
+            await Clients.Clients(targets).SendAsync("MessageStatusChanged", messageId, "Delivered");
         }
 
         public async Task MarkRead(int messageId)
         {
+            ChatMessage? msg;
             lock (_dialogs)
             {
-                var msg = _dialogs.Values.SelectMany(x => x).FirstOrDefault(m => m.Id == messageId);
-                if (msg != null)
-                    msg.Status = MessageStatus.Read;
+                msg = _dialogs.Values.SelectMany(x => x).FirstOrDefault(m => m.Id == messageId);
+                if (msg == null) return;
+
+                msg.Status = MessageStatus.Read;
                 SaveDialogs();
             }
-            await Clients.All.SendAsync("MessageStatusChanged", messageId, "Read");
+
+            // ✅ отправляем только двум участникам диалога
+            var targets = GetConnectionsByEmail(msg.FromEmail)
+                .Concat(GetConnectionsByEmail(msg.ToEmail))
+                .Distinct()
+                .ToList();
+
+            await Clients.Clients(targets).SendAsync("MessageStatusChanged", messageId, "Read");
         }
+
 
         public async Task EditMessage(int messageId, string newText)
         {

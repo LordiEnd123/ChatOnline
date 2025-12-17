@@ -114,8 +114,10 @@
             <ListBox x:Name="MessagesListBox"
                      Grid.Row="2"
                      Margin="0,0,0,5"
+                     DisplayMemberPath="DisplayText"
                      MouseDoubleClick="MessagesListBox_MouseDoubleClick"
                      MouseRightButtonUp="MessagesListBox_MouseRightButtonUp"/>
+
 
             <!-- Ввод -->
             <DockPanel Grid.Row="3">

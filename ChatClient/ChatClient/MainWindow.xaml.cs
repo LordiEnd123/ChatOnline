@@ -286,6 +286,7 @@ namespace ChatClient
                     msg.ToEmail == _currentDialogEmail)
                 {
                     _currentMessages.Add(msg);
+                    ScrollMessagesToBottom();
                 }
             });
 
@@ -338,11 +339,15 @@ namespace ChatClient
                 if (msg != null)
                 {
                     msg.Status = status;
+
+                    // 🔥 ВАЖНО: принудительно обновляем элемент
                     var index = _currentMessages.IndexOf(msg);
-                    _currentMessages[index] = msg;
+                    if (index >= 0)
+                        _currentMessages[index] = msg;
                 }
             });
         }
+
 
         private void OnMessageEdited(int id, string newText)
         {
@@ -384,6 +389,8 @@ namespace ChatClient
                     await _connection.InvokeAsync("SendMessage", user, text);
                 }
                 MessageTextBox.Clear();
+                ScrollMessagesToBottom();
+
             }
             catch (Exception ex)
             {
@@ -693,6 +700,8 @@ namespace ChatClient
                 _currentMessages.Clear();
                 foreach (var m in messages)
                     _currentMessages.Add(m);
+
+                ScrollMessagesToBottom();
             }
             catch (Exception ex)
             {
@@ -721,6 +730,15 @@ namespace ChatClient
             if (str.Equals("Online", StringComparison.OrdinalIgnoreCase)) return "Online";
             return "Offline";
         }
+
+        private void ScrollMessagesToBottom()
+        {
+            if (_currentMessages.Count == 0) return;
+
+            var last = _currentMessages[_currentMessages.Count - 1];
+            MessagesListBox.ScrollIntoView(last);
+        }
+
 
 
     }
