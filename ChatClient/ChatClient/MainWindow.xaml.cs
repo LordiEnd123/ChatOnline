@@ -44,9 +44,7 @@ namespace ChatClient
             MessagesListBox.ItemsSource = _currentMessages;
             ContactsListBox.ItemsSource = _contacts;
 
-
             InitializeConnection();
-
 
             // Загрузка контактов
             _ = LoadContactsAsync();
@@ -60,27 +58,19 @@ namespace ChatClient
         // Иницилизация подключения
         private const string ServerBaseUrl = "http://192.168.1.105:5099";
 
-
-
         private void InitializeConnection()
         {
             // Адрес хаба
             var hubUrl = $"{ServerBaseUrl}/chat";
 
-            _connection = new HubConnectionBuilder()
-                .WithUrl(hubUrl)
-                .WithAutomaticReconnect()
-                .Build();
+            _connection = new HubConnectionBuilder().WithUrl(hubUrl).WithAutomaticReconnect().Build();
 
             // email текущего пользователя
             var email = string.IsNullOrEmpty(Session.Email) ? "anonymous@example.com" : Session.Email;
 
             var urlWithUser = $"{hubUrl}?user={Uri.EscapeDataString(email)}";
 
-            _connection = new HubConnectionBuilder()
-                .WithUrl(urlWithUser)
-                .WithAutomaticReconnect()
-                .Build();
+            _connection = new HubConnectionBuilder().WithUrl(urlWithUser).WithAutomaticReconnect().Build();
 
             // Старый общий чат
             _connection.On<string, string>("ReceiveMessage", (user, message) =>
@@ -114,13 +104,11 @@ namespace ChatClient
                     if (c != null)
                     {
                         c.Name = u.Name;
-
                         if (!string.IsNullOrWhiteSpace(u.AvatarUrl))
                         {
-                            // ✅ анти-кэш, чтобы картинка перезагрузилась
+                            // Перезагрузка картинки
                             var url = (u.AvatarUrl.StartsWith("/") ? ServerBaseUrl + u.AvatarUrl : u.AvatarUrl);
                             url += (url.Contains("?") ? "&" : "?") + "v=" + DateTime.UtcNow.Ticks;
-
                             c.AvatarPath = url;
                         }
                         else
@@ -129,7 +117,7 @@ namespace ChatClient
                         }
                     }
 
-                    // если обновился текущий выбранный контакт — принудительно обновим отображение
+                    // Если обновился текущий выбранный контакт, то принудительно обновляем отображение
                     if (ContactsListBox.SelectedItem == c)
                     {
                         ContactsListBox.Items.Refresh();
@@ -145,15 +133,14 @@ namespace ChatClient
                     if (u.Email.Equals(Session.Email, StringComparison.OrdinalIgnoreCase))
                         return;
 
-                    // если уже есть — обновим имя/аватар
-                    var existing = _contacts.FirstOrDefault(x =>
-                        x.Email.Equals(u.Email, StringComparison.OrdinalIgnoreCase));
+                    // если уже есть, то обновим имя/аватар
+                    var existing = _contacts.FirstOrDefault(x => x.Email.Equals(u.Email, StringComparison.OrdinalIgnoreCase));
 
                     string? avatar = null;
                     if (!string.IsNullOrWhiteSpace(u.AvatarUrl))
                     {
                         var url = (u.AvatarUrl.StartsWith("/") ? ServerBaseUrl + u.AvatarUrl : u.AvatarUrl);
-                        url += (url.Contains("?") ? "&" : "?") + "v=" + DateTime.UtcNow.Ticks; // анти-кэш
+                        url += (url.Contains("?") ? "&" : "?") + "v=" + DateTime.UtcNow.Ticks;
                         avatar = url;
                     }
 
@@ -185,16 +172,12 @@ namespace ChatClient
                 {
                     var contact = _contacts.FirstOrDefault(c =>
                         c.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
-
                     if (contact != null)
                     {
-                        contact.Status = status; // ✅ тут пусть будет "DoNotDisturb"
+                        contact.Status = status;
                     }
                 });
             });
-
-
-
             ConnectToServer();
         }
 
@@ -227,7 +210,6 @@ namespace ChatClient
         }
 
         // Загрузка контактов
-
         private async Task LoadContactsAsync()
         {
             try
@@ -243,18 +225,14 @@ namespace ChatClient
                 };
 
                 var users = JsonSerializer.Deserialize<List<UserDto>>(json, options) ?? new();
-
                 _contacts.Clear();
-
                 foreach (var u in users.Where(u => u.Email != Session.Email))
                 {
                     string? avatar = null;
-
                     if (!string.IsNullOrWhiteSpace(u.AvatarUrl))
                     {
                         avatar = $"{ServerBaseUrl}{u.AvatarUrl}";
                     }
-
                     _contacts.Add(new ContactView
                     {
                         Email = u.Email,
@@ -262,19 +240,16 @@ namespace ChatClient
                         AvatarPath = avatar,
                         Status = NormalizeStatus(u.Status)
                     });
-
                 }
             }
             catch { }
         }
 
         // Входящие сообщения
-
         private async void OnReceivePrivateMessage(object raw)
         {
             var json = JsonSerializer.Serialize(raw);
-            var msg = JsonSerializer.Deserialize<ChatMessageView>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var msg = JsonSerializer.Deserialize<ChatMessageView>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
             if (msg == null) return;
 
@@ -290,11 +265,10 @@ namespace ChatClient
                 }
             });
 
-            // ✅ УВЕДОМЛЕНИЯ ТОЛЬКО ДЛЯ ВХОДЯЩИХ
+            // Уведомления только для входящих
             var isIncoming = string.Equals(msg.ToEmail, Session.Email, StringComparison.OrdinalIgnoreCase);
             var isActiveDialog = string.Equals(_currentDialogEmail, msg.FromEmail, StringComparison.OrdinalIgnoreCase);
 
-            // ✅ всё, что трогает окно/UI — через Dispatcher
             Dispatcher.Invoke(() =>
             {
                 var isWindowActive = this.IsActive && this.WindowState != WindowState.Minimized;
@@ -302,17 +276,12 @@ namespace ChatClient
                 if (isIncoming && (!isWindowActive || !isActiveDialog))
                 {
                     var isIncoming = string.Equals(msg.ToEmail, Session.Email, StringComparison.OrdinalIgnoreCase);
-
                     if (isIncoming)
                     {
-                        // если DND — не показываем уведомления
                         if (Session.Status == "DoNotDisturb")
                             return;
-
-                        // если активен нужный диалог/окно — тоже можешь не показывать (как у тебя уже было)
                         NotificationService.Show(msg);
                     }
-
                 }
             });
 
@@ -329,8 +298,6 @@ namespace ChatClient
             }
         }
 
-
-
         private void OnMessageStatusChanged(int id, string status)
         {
             Dispatcher.Invoke(() =>
@@ -339,8 +306,6 @@ namespace ChatClient
                 if (msg != null)
                 {
                     msg.Status = status;
-
-                    // 🔥 ВАЖНО: принудительно обновляем элемент
                     var index = _currentMessages.IndexOf(msg);
                     if (index >= 0)
                         _currentMessages[index] = msg;
@@ -351,10 +316,7 @@ namespace ChatClient
 
         private void OnMessageEdited(int id, string newText)
         {
-            _ = Dispatcher.InvokeAsync(async () =>
-            {
-                await ReloadCurrentDialogAsync();
-            });
+            _ = Dispatcher.InvokeAsync(async () => { await ReloadCurrentDialogAsync(); });
         }
 
 
@@ -412,7 +374,6 @@ namespace ChatClient
         }
 
         // Контакты и диалоги
-
         private async void ContactsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             var contact = ContactsListBox.SelectedItem as ContactView;
@@ -420,7 +381,6 @@ namespace ChatClient
                 return;
 
             _currentDialogEmail = contact.Email;
-
             NotificationService.ActiveDialogEmail = _currentDialogEmail;
 
 
@@ -431,10 +391,7 @@ namespace ChatClient
                 foreach (var m in messages)
                     _currentMessages.Add(m);
 
-                var unread = messages
-                    .Where(m => m.ToEmail == Session.Email && m.Status != "Read")
-                    .Select(m => m.Id)
-                    .ToList();
+                var unread = messages.Where(m => m.ToEmail == Session.Email && m.Status != "Read").Select(m => m.Id).ToList();
 
                 foreach (var id in unread)
                 {
@@ -472,20 +429,16 @@ namespace ChatClient
         }
 
         // Профиль
-
         private void ProfileButton_Click(object sender, RoutedEventArgs e)
         {
             var profileWindow = new ProfileWindow { Owner = this };
             profileWindow.ShowDialog();
-
             UserNameTextBox.Text = Session.Name;
-
-            _ = LoadContactsAsync(); // ✅ обновит аватары/имена
+            _ = LoadContactsAsync();
         }
 
 
         // Выход
-
         private async void LogoutButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -502,15 +455,12 @@ namespace ChatClient
             ClientConfig.Clear();
             Session.Email = "";
             Session.Name = "";
-
             var loginWindow = new LoginWindow();
             loginWindow.Show();
-
             Close();
         }
 
         // Приклепление файлов
-
         private async void AttachButton_Click(object sender, RoutedEventArgs e)
         {
             if (_connection == null || _connection.State != HubConnectionState.Connected)
@@ -607,7 +557,6 @@ namespace ChatClient
             if (sender is not MenuItem mi || mi.Tag is not ChatMessageView msg)
                 return;
 
-            // Редактируем только свои
             if (!msg.FromEmail.Equals(Session.Email, StringComparison.OrdinalIgnoreCase))
             {
                 MessageBox.Show("Можно редактировать только свои сообщения.");
@@ -684,7 +633,6 @@ namespace ChatClient
                 Tag = msg
             };
             deleteItem.Click += DeleteMessageMenu_Click;
-
             menu.Items.Add(editItem);
             menu.Items.Add(deleteItem);
             menu.IsOpen = true;
@@ -700,7 +648,6 @@ namespace ChatClient
                 _currentMessages.Clear();
                 foreach (var m in messages)
                     _currentMessages.Add(m);
-
                 ScrollMessagesToBottom();
             }
             catch (Exception ex)
@@ -734,12 +681,8 @@ namespace ChatClient
         private void ScrollMessagesToBottom()
         {
             if (_currentMessages.Count == 0) return;
-
             var last = _currentMessages[_currentMessages.Count - 1];
             MessagesListBox.ScrollIntoView(last);
         }
-
-
-
     }
 }

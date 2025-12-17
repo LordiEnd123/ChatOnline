@@ -11,14 +11,12 @@ namespace ChatClient
     public partial class LoginWindow : Window
     {
         private static readonly string BaseUrl = ApiConfig.ServerBaseUrl;
-
         private readonly HttpClient _httpClient = new HttpClient();
 
         public LoginWindow()
         {
             InitializeComponent();
         }
-
         public static class ApiConfig
         {
             public const string ServerBaseUrl = "http://192.168.1.105:5099";
@@ -52,12 +50,10 @@ namespace ChatClient
         {
             var cfg = ClientConfig.Load();
 
-            if (!string.IsNullOrWhiteSpace(cfg.Email) &&
-                !string.IsNullOrWhiteSpace(cfg.Password))
+            if (!string.IsNullOrWhiteSpace(cfg.Email) && !string.IsNullOrWhiteSpace(cfg.Password))
             {
                 EmailTextBox.Text = cfg.Email;
                 PasswordBox.Password = cfg.Password;
-
                 await DoLoginAsync(auto: true);
             }
         }
@@ -95,10 +91,8 @@ namespace ChatClient
                 if (!response.IsSuccessStatusCode)
                 {
                     var msg = await response.Content.ReadAsStringAsync();
-
                     if (auto) StatusTextBlock.Text = "";
-                    else StatusTextBlock.Text = msg; // показываем реальную причину
-
+                    else StatusTextBlock.Text = msg;
                     ClientConfig.Clear();
                     return;
                 }
@@ -117,7 +111,7 @@ namespace ChatClient
                 Session.Email = user.Email;
                 Session.Name = user.Name;
 
-                // Всегда сохраняем для авто-логина
+                // Всегда сохраняем для автоматического логина
                 ClientConfig.Save(new ClientConfigModel
                 {
                     Email = email,
@@ -139,7 +133,6 @@ namespace ChatClient
         private async void RegisterButton_Click(object sender, RoutedEventArgs e)
         {
             StatusTextBlock.Text = "Регистрация...";
-
             var email = EmailTextBox.Text.Trim();
             var password = PasswordBox.Password;
 
@@ -151,7 +144,7 @@ namespace ChatClient
 
             try
             {
-                // простое имя: всё до @
+                // простое имя (всё до @)
                 var namePart = email.Split('@')[0];
                 if (string.IsNullOrWhiteSpace(namePart))
                     namePart = "User";
@@ -166,7 +159,6 @@ namespace ChatClient
                 var json = JsonSerializer.Serialize(req);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync($"{BaseUrl}/api/Auth/register", content);
-
                 if (!response.IsSuccessStatusCode)
                 {
                     var msg = await response.Content.ReadAsStringAsync();
@@ -194,11 +186,7 @@ namespace ChatClient
 
             try
             {
-                await _httpClient.PostAsync(
-                    $"{BaseUrl}/api/Auth/restore",
-                    new StringContent($"{{\"email\":\"{email}\"}}", Encoding.UTF8, "application/json")
-                );
-
+                await _httpClient.PostAsync($"{BaseUrl}/api/Auth/restore", new StringContent($"{{\"email\":\"{email}\"}}", Encoding.UTF8, "application/json"));
                 StatusTextBlock.Foreground = Brushes.Green;
                 StatusTextBlock.Text = "Пароль отправлен на почту.";
             }

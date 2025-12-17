@@ -17,23 +17,13 @@ namespace ChatClient
     public partial class ProfileWindow : Window
     {
         private const string BaseUrl = "http://192.168.1.105:5099";
-
-        private readonly HttpClient _httpClient = new HttpClient(
-            new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (_, _, _, _) => true
-            });
-
+        private readonly HttpClient _httpClient = new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = (_, _, _, _) => true });
         private HubConnection? _hub;
 
         public ProfileWindow()
         {
             InitializeComponent();
-
-            // 1) загрузка профиля
             LoadProfile();
-
-            // 2) подключение к SignalR (для SetStatus после сохранения)
             _ = EnsureHubConnectedAsync();
         }
 
@@ -94,16 +84,12 @@ namespace ChatClient
                 var email = string.IsNullOrWhiteSpace(Session.Email) ? "anonymous@example.com" : Session.Email;
                 var hubUrl = $"{BaseUrl}/chat?user={Uri.EscapeDataString(email)}";
 
-                _hub = new HubConnectionBuilder()
-                    .WithUrl(hubUrl)
-                    .WithAutomaticReconnect()
-                    .Build();
-
+                _hub = new HubConnectionBuilder().WithUrl(hubUrl).WithAutomaticReconnect().Build();
                 await _hub.StartAsync();
             }
             catch
             {
-                // Не критично — профиль всё равно сохраняется через HTTP
+
             }
         }
 
@@ -115,13 +101,12 @@ namespace ChatClient
 
                 if (_hub != null && _hub.State == HubConnectionState.Connected)
                 {
-                    // отправляем int (0/1/2)
                     await _hub.InvokeAsync("SetStatus", status);
                 }
             }
             catch
             {
-                // не критично
+
             }
         }
 
@@ -138,8 +123,7 @@ namespace ChatClient
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
-                var user = JsonSerializer.Deserialize<UserDto>(json,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var user = JsonSerializer.Deserialize<UserDto>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
                 if (user == null)
                 {
@@ -168,10 +152,7 @@ namespace ChatClient
                 {
                     try
                     {
-                        // user.AvatarUrl = "/avatars/....png"
-                        var url = user.AvatarUrl.StartsWith("/")
-                            ? BaseUrl + user.AvatarUrl
-                            : user.AvatarUrl;
+                        var url = user.AvatarUrl.StartsWith("/") ? BaseUrl + user.AvatarUrl : user.AvatarUrl;
 
                         // чтобы не мешал кэш
                         url += (url.Contains("?") ? "&" : "?") + "v=" + DateTime.UtcNow.Ticks;
@@ -242,7 +223,6 @@ namespace ChatClient
                 NotificationService.SoundEnabled = req.SoundEnabled;
                 NotificationService.BannerEnabled = req.BannerEnabled;
 
-                // 🔥 главное: пушим статус в SignalR, чтобы все клиенты сразу обновились
                 await TryPushStatusToHubAsync(req.Status);
 
                 StatusTextBlock.Foreground = Brushes.Green;
@@ -404,7 +384,7 @@ namespace ChatClient
                 // показать URL в поле
                 AvatarTextBox.Text = user.AvatarUrl;
 
-                // показать картинку (делаем абсолютный URL)
+                // показать картинку
                 var url = user.AvatarUrl.StartsWith("/") ? BaseUrl + user.AvatarUrl : user.AvatarUrl;
                 url += (url.Contains("?") ? "&" : "?") + "v=" + DateTime.UtcNow.Ticks;
 
@@ -416,7 +396,6 @@ namespace ChatClient
                 bmp.EndInit();
                 AvatarImage.Source = bmp;
 
-
                 StatusTextBlock.Text = "Аватар обновлён.";
             }
             catch (Exception ex)
@@ -424,9 +403,5 @@ namespace ChatClient
                 StatusTextBlock.Text = "Ошибка: " + ex.Message;
             }
         }
-
-
-
-
     }
 }

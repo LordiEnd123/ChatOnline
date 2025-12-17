@@ -13,10 +13,7 @@ namespace ChatServer.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly EmailService _email;
-
-    // если сервер по IP — лучше держать в конфиге, но пока так:
     private const string ServerBaseUrl = "http://192.168.1.105:5099";
-
     private readonly IHubContext<ChatHub> _hub;
 
     public AuthController(EmailService email, IHubContext<ChatHub> hub)
@@ -63,7 +60,6 @@ public class AuthController : ControllerBase
         if (user == null || user.Password != request.Password)
             return Unauthorized("Неверный email или пароль.");
 
-        // Если был Offline, ставим Online. Если был DoNotDisturb или Online — оставляем.
         if (user.Status == UserStatus.Offline)
             user.Status = UserStatus.Online;
 
@@ -85,7 +81,7 @@ public class AuthController : ControllerBase
             }
             catch
             {
-                // намеренно молчим
+
             }
         }
 
@@ -114,7 +110,6 @@ public class AuthController : ControllerBase
         user.Status = UserStatus.Offline;
 
         UserStore.UpdateUser(user);
-        // уведомляем всех клиентов: появился новый подтвержденный пользователь
         _hub.Clients.All.SendAsync("UserRegistered", UserDto.FromUser(user));
 
         return Ok("Email подтверждён. Теперь можно войти в приложение.");

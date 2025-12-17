@@ -50,9 +50,8 @@ public class ProfileController : ControllerBase
 
         UserStore.UpdateUser(user);
 
-        // ✅ уведомляем всех клиентов (чтобы обновили аватар/имя без перезапуска)
+        // чтобы обновили аватар/имя без перезапуска)
         await _hub.Clients.All.SendAsync("UserProfileChanged", UserDto.FromUser(user));
-
         return Ok(UserDto.FromUser(user));
     }
 

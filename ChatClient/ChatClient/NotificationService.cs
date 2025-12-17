@@ -29,7 +29,6 @@ namespace ChatClient
                 Visibility = Visibility.Visible
             };
 
-            // ВАЖНО: иконка, иначе balloon часто не показывается
             try
             {
                 var exe = Process.GetCurrentProcess().MainModule?.FileName;
@@ -40,7 +39,7 @@ namespace ChatClient
             }
             catch
             {
-                // если не получилось — просто без иконки (но обычно сработает)
+
             }
         }
 
@@ -51,20 +50,14 @@ namespace ChatClient
 
             // умные уведомления
             if (IsAppActive &&
-                !string.IsNullOrEmpty(ActiveDialogEmail) &&
-                string.Equals(ActiveDialogEmail, msg.FromEmail, StringComparison.OrdinalIgnoreCase))
+                !string.IsNullOrEmpty(ActiveDialogEmail) && string.Equals(ActiveDialogEmail, msg.FromEmail, StringComparison.OrdinalIgnoreCase))
                 return;
 
             if (BannerEnabled)
             {
                 InitTray();
-                _tray?.ShowBalloonTip(
-                    msg.FromEmail,
-                    msg.IsFile ? $"Файл: {msg.FileName}" : msg.Text,
-                    BalloonIcon.Info);
+                _tray?.ShowBalloonTip(msg.FromEmail, msg.IsFile ? $"Файл: {msg.FileName}" : msg.Text, BalloonIcon.Info);
             }
-
-
             if (SoundEnabled)
             {
                 SystemSounds.Asterisk.Play();

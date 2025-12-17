@@ -17,28 +17,6 @@ namespace ChatServer.Models
         static UserStore()
         {
             LoadFromFile();
-
-            // Если пользователей нет — можно добавить тестовых
-            if (_users.Count == 0)
-            {
-                _users.Add(new User
-                {
-                    Email = "user1@mail.com",
-                    Password = "123",
-                    Name = "User 1",
-                    Status = UserStatus.Online
-                });
-
-                _users.Add(new User
-                {
-                    Email = "user2@mail.com",
-                    Password = "123",
-                    Name = "User 2",
-                    Status = UserStatus.Offline
-                });
-
-                SaveToFile();
-            }
         }
 
         public static IEnumerable<User> GetAll()
@@ -53,8 +31,7 @@ namespace ChatServer.Models
         {
             lock (_lock)
             {
-                return _users.FirstOrDefault(
-                    u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+                return _users.FirstOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
             }
         }
 
@@ -62,8 +39,7 @@ namespace ChatServer.Models
         {
             lock (_lock)
             {
-                if (_users.Any(u =>
-                        u.Email.Equals(user.Email, StringComparison.OrdinalIgnoreCase)))
+                if (_users.Any(u => u.Email.Equals(user.Email, StringComparison.OrdinalIgnoreCase)))
                 {
                     return false;
                 }
@@ -78,8 +54,7 @@ namespace ChatServer.Models
         {
             lock (_lock)
             {
-                var existing = _users.FirstOrDefault(
-                    u => u.Id == user.Id);
+                var existing = _users.FirstOrDefault(u => u.Id == user.Id);
 
                 if (existing == null)
                     return false;
@@ -126,8 +101,7 @@ namespace ChatServer.Models
         {
             try
             {
-                var json = JsonSerializer.Serialize(_users,
-                    new JsonSerializerOptions
+                var json = JsonSerializer.Serialize(_users, new JsonSerializerOptions
                     {
                         WriteIndented = true
                     });
@@ -142,8 +116,8 @@ namespace ChatServer.Models
             var user = GetByEmail(email);
             if (user == null) return;
 
-            _users.Remove(user);   // или как у тебя хранится список
-            SaveToFile();             // или как у тебя сохраняется users.json
+            _users.Remove(user);
+            SaveToFile();
         }
 
     }

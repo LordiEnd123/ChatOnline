@@ -26,7 +26,7 @@
             <PasswordBox x:Name="PasswordBox" Width="220"/>
         </StackPanel>
 
-        <!-- Кнопки Войти / Регистрация -->
+        <!-- Кнопки Войти и Регистрация -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,10">
             <Button Content="Войти"
                     Width="100"

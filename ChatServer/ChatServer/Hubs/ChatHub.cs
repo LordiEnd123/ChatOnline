@@ -92,9 +92,7 @@ namespace ChatServer
         }
 
         // Личные сообщения
-        public async Task SendPrivateMessage(string toEmail, string text,
-                                     bool isFile, string? fileName,
-                                     byte[]? fileContent)
+        public async Task SendPrivateMessage(string toEmail, string text, bool isFile, string? fileName, byte[]? fileContent)
 
         {
             var fromEmail = GetUserEmail();
@@ -132,15 +130,10 @@ namespace ChatServer
 
                 list.Add(msg);
             }
-
-            // Сохраняем диалоги на диск
             SaveDialogs();
 
             // Отправляем отправителю и получателю
-            var targets = GetConnectionsByEmail(msg.FromEmail)
-                .Concat(GetConnectionsByEmail(msg.ToEmail))
-                .Distinct();
-
+            var targets = GetConnectionsByEmail(msg.FromEmail).Concat(GetConnectionsByEmail(msg.ToEmail)).Distinct();
             await Clients.Clients(targets).SendAsync("ReceivePrivateMessage", msg);
 
         }
@@ -159,9 +152,7 @@ namespace ChatServer
             lock (_dialogs)
             {
                 // Берём вообще все сообщения из всех диалогов
-                result = _dialogs.Values
-                    .SelectMany(list => list)
-                    .Where(m =>
+                result = _dialogs.Values.SelectMany(list => list).Where(m =>
                         // current -> with
                         string.Equals(m.FromEmail, currentUserEmail, StringComparison.OrdinalIgnoreCase) &&
                         string.Equals(m.ToEmail, withEmail, StringComparison.OrdinalIgnoreCase)
@@ -169,9 +160,7 @@ namespace ChatServer
                         // with -> current
                         string.Equals(m.FromEmail, withEmail, StringComparison.OrdinalIgnoreCase) &&
                         string.Equals(m.ToEmail, currentUserEmail, StringComparison.OrdinalIgnoreCase)
-                    )
-                    .OrderBy(m => m.Timestamp)
-                    .ToList();
+                    ).OrderBy(m => m.Timestamp).ToList();
             }
             return Task.FromResult(result);
         }
@@ -230,16 +219,10 @@ namespace ChatServer
 
                 lock (_dialogs)
                 {
-                    allMessages = _dialogs.Values
-                        .SelectMany(list => list)
-                        .OrderBy(m => m.Timestamp)
-                        .ToList();
+                    allMessages = _dialogs.Values.SelectMany(list => list).OrderBy(m => m.Timestamp).ToList();
                 }
 
-                var json = JsonSerializer.Serialize(
-                    allMessages,
-                    new JsonSerializerOptions { WriteIndented = true });
-
+                var json = JsonSerializer.Serialize(allMessages, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(DialogsFilePath, json);
             }
             catch { }
@@ -257,11 +240,8 @@ namespace ChatServer
                 SaveDialogs();
             }
 
-            // ✅ отправляем только двум участникам диалога
-            var targets = GetConnectionsByEmail(msg.FromEmail)
-                .Concat(GetConnectionsByEmail(msg.ToEmail))
-                .Distinct()
-                .ToList();
+            // отправляем только двум участникам диалога
+            var targets = GetConnectionsByEmail(msg.FromEmail).Concat(GetConnectionsByEmail(msg.ToEmail)).Distinct().ToList();
 
             await Clients.Clients(targets).SendAsync("MessageStatusChanged", messageId, "Delivered");
         }
@@ -278,12 +258,8 @@ namespace ChatServer
                 SaveDialogs();
             }
 
-            // ✅ отправляем только двум участникам диалога
-            var targets = GetConnectionsByEmail(msg.FromEmail)
-                .Concat(GetConnectionsByEmail(msg.ToEmail))
-                .Distinct()
-                .ToList();
-
+            // отправляем только двум участникам диалога
+            var targets = GetConnectionsByEmail(msg.FromEmail).Concat(GetConnectionsByEmail(msg.ToEmail)).Distinct().ToList();
             await Clients.Clients(targets).SendAsync("MessageStatusChanged", messageId, "Read");
         }
 
@@ -338,7 +314,7 @@ namespace ChatServer
             if (user == null)
                 return;
 
-            user.Status = (UserStatus)status; // 0/1/2
+            user.Status = (UserStatus)status;
             UserStore.UpdateUser(user);
 
             await Clients.All.SendAsync("UserStatusChanged", user.Email, user.Status.ToString());
@@ -348,8 +324,5 @@ namespace ChatServer
         {
             await Clients.All.SendAsync("UserProfileChanged", user);
         }
-
-
-
     }
 }

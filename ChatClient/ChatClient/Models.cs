@@ -32,8 +32,8 @@ namespace ChatClient
                 if (_status != value)
                 {
                     _status = value;
-                    OnPropertyChanged();           // Status
-                    OnPropertyChanged(nameof(DisplayText)); // ListBox
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(DisplayText));
                 }
             }
         }
@@ -69,8 +69,7 @@ namespace ChatClient
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        protected void OnPropertyChanged([CallerMemberName] string? name = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        protected void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
     public class ContactView : INotifyPropertyChanged
@@ -98,7 +97,7 @@ namespace ChatClient
             set { _avatarPath = value; OnPropertyChanged(); }
         }
 
-        // ждем: "Online" / "Offline" / "DoNotDisturb"
+        // "Online" / "Offline" / "DoNotDisturb"
         public string Status
         {
             get => _status;
@@ -134,8 +133,6 @@ namespace ChatClient
                 return "Offline";
 
             s = s.Trim();
-
-            // если вдруг пришло цифрой "0/1/2"
             if (int.TryParse(s, out var n))
             {
                 return n switch
@@ -150,16 +147,13 @@ namespace ChatClient
             if (s.Equals("Online", StringComparison.OrdinalIgnoreCase)) return "Online";
             if (s.Equals("Offline", StringComparison.OrdinalIgnoreCase)) return "Offline";
 
-            if (s.Equals("Dnd", StringComparison.OrdinalIgnoreCase) ||
-                s.Equals("DoNotDisturb", StringComparison.OrdinalIgnoreCase))
+            if (s.Equals("Dnd", StringComparison.OrdinalIgnoreCase) || s.Equals("DoNotDisturb", StringComparison.OrdinalIgnoreCase))
                 return "DoNotDisturb";
-
             return "Offline";
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
-        private void OnPropertyChanged([CallerMemberName] string? name = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        private void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
 }

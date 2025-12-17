@@ -17,38 +17,24 @@ public class EmailService
         _user = config["Smtp:User"] ?? "";
         _password = config["Smtp:Password"] ?? "";
 
-        if (string.IsNullOrWhiteSpace(_host) ||
-            string.IsNullOrWhiteSpace(_user) ||
-            string.IsNullOrWhiteSpace(_password))
-            throw new Exception("SMTP не настроен в appsettings.json (Smtp:Host/User/Password).");
+        if (string.IsNullOrWhiteSpace(_host) || string.IsNullOrWhiteSpace(_user) || string.IsNullOrWhiteSpace(_password)) throw new Exception("SMTP не настроен в appsettings.json (Smtp:Host/User/Password).");
     }
 
     public void SendConfirmEmail(string to, string token, string serverBaseUrl)
     {
         to = to.Trim();
-        if (!MailAddress.TryCreate(to, out _))
-            throw new Exception("Невалидный email: " + to);
-
+        if (!MailAddress.TryCreate(to, out _)) throw new Exception("Невалидный email: " + to);
         var link = $"{serverBaseUrl}/api/Auth/confirm-email?token={token}";
 
-        Send(
-            to,
-            "Подтверждение регистрации",
-            $"Перейдите по ссылке:\n{link}"
-        );
+        Send(to, "Подтверждение регистрации", $"Перейдите по ссылке:\n{link}");
     }
 
     public void SendPasswordEmail(string to, string password)
     {
         to = to.Trim();
-        if (!MailAddress.TryCreate(to, out _))
-            throw new Exception("Невалидный email: " + to);
+        if (!MailAddress.TryCreate(to, out _)) throw new Exception("Невалидный email: " + to);
 
-        Send(
-            to,
-            "Восстановление пароля",
-            $"Ваш пароль: {password}"
-        );
+        Send(to, "Восстановление пароля", $"Ваш пароль: {password}");
     }
 
     private void Send(string to, string subject, string body)
