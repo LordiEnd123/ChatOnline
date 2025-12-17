@@ -2,7 +2,9 @@
 using ChatServer.Models;
 using ChatServer.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using System.Net.Mail;
+
 
 namespace ChatServer.Controllers;
 
@@ -15,10 +17,14 @@ public class AuthController : ControllerBase
     // если сервер по IP — лучше держать в конфиге, но пока так:
     private const string ServerBaseUrl = "http://192.168.1.105:5099";
 
-    public AuthController(EmailService email)
+    private readonly IHubContext<ChatHub> _hub;
+
+    public AuthController(EmailService email, IHubContext<ChatHub> hub)
     {
         _email = email;
+        _hub = hub;
     }
+
 
     [HttpPost("register")]
     public ActionResult Register([FromBody] RegisterRequest request)
@@ -111,6 +117,8 @@ public class AuthController : ControllerBase
         user.Status = UserStatus.Offline;
 
         UserStore.UpdateUser(user);
+        // уведомляем всех клиентов: появился новый подтвержденный пользователь
+        _hub.Clients.All.SendAsync("UserRegistered", UserDto.FromUser(user));
 
         return Ok("Email подтверждён. Теперь можно войти в приложение.");
     }

@@ -1378,5 +1378,77 @@
     "Status": 2,
     "FileContent": null,
     "IsDeleted": false
+  },
+  {
+    "Id": 123,
+    "FromEmail": "Nikitabw1337@gmail.com",
+    "ToEmail": "tavdaba@gmail.com",
+    "Text": "chert, ti zachem ukral robloxi",
+    "Timestamp": "2025-12-17T11:35:48.8701948Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
+  },
+  {
+    "Id": 124,
+    "FromEmail": "Nikitabw1337@gmail.com",
+    "ToEmail": "tavdaba@gmail.com",
+    "Text": "?",
+    "Timestamp": "2025-12-17T11:35:51.7325488Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
+  },
+  {
+    "Id": 125,
+    "FromEmail": "Nikitabw1337@gmail.com",
+    "ToEmail": "tavdaba@gmail.com",
+    "Text": "cho smechnogo chuka?",
+    "Timestamp": "2025-12-17T11:36:12.0010315Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
+  },
+  {
+    "Id": 126,
+    "FromEmail": "tavdaba@gmail.com",
+    "ToEmail": "Nikitabw1337@gmail.com",
+    "Text": "sss",
+    "Timestamp": "2025-12-17T11:36:48.1107392Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
+  },
+  {
+    "Id": 127,
+    "FromEmail": "Nikitabw1337@gmail.com",
+    "ToEmail": "tavdaba@gmail.com",
+    "Text": "tripleS?",
+    "Timestamp": "2025-12-17T11:37:02.6683505Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
+  },
+  {
+    "Id": 128,
+    "FromEmail": "Nikitabw1337@gmail.com",
+    "ToEmail": "tavdaba@gmail.com",
+    "Text": "otdai robloxi!",
+    "Timestamp": "2025-12-17T11:37:19.6208796Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
   }
 ]

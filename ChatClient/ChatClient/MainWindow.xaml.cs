@@ -137,6 +137,47 @@ namespace ChatClient
                 });
             });
 
+            _connection.On<UserDto>("UserRegistered", (u) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    // не добавляем самого себя
+                    if (u.Email.Equals(Session.Email, StringComparison.OrdinalIgnoreCase))
+                        return;
+
+                    // если уже есть — обновим имя/аватар
+                    var existing = _contacts.FirstOrDefault(x =>
+                        x.Email.Equals(u.Email, StringComparison.OrdinalIgnoreCase));
+
+                    string? avatar = null;
+                    if (!string.IsNullOrWhiteSpace(u.AvatarUrl))
+                    {
+                        var url = (u.AvatarUrl.StartsWith("/") ? ServerBaseUrl + u.AvatarUrl : u.AvatarUrl);
+                        url += (url.Contains("?") ? "&" : "?") + "v=" + DateTime.UtcNow.Ticks; // анти-кэш
+                        avatar = url;
+                    }
+
+                    if (existing != null)
+                    {
+                        existing.Name = u.Name;
+                        existing.AvatarPath = avatar;
+                        existing.Status = u.Status == 1 ? "Online" : (u.Status == 2 ? "DoNotDisturb" : "Offline");
+                        ContactsListBox.Items.Refresh();
+                        return;
+                    }
+
+                    // новый контакт
+                    _contacts.Add(new ContactView
+                    {
+                        Email = u.Email,
+                        Name = u.Name,
+                        AvatarPath = avatar,
+                        Status = u.Status == 1 ? "Online" : (u.Status == 2 ? "DoNotDisturb" : "Offline")
+                    });
+                });
+            });
+
+
 
             _connection.On<string, string>("UserStatusChanged",
                 (email, status) =>
