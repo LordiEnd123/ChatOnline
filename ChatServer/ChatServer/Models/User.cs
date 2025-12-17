@@ -24,4 +24,7 @@ public class User
     public bool NotificationsEnabled { get; set; } = true;
     public bool SoundEnabled { get; set; } = true;
     public bool BannerEnabled { get; set; } = true;
+
+    public bool EmailConfirmed { get; set; }
+    public string? EmailConfirmToken { get; set; }
 }

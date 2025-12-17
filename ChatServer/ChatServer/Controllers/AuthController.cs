@@ -1,6 +1,8 @@
 ﻿using ChatServer.Dtos;
 using ChatServer.Models;
+using ChatServer.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Mail;
 
 namespace ChatServer.Controllers;
 
@@ -8,57 +10,108 @@ namespace ChatServer.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    // Регистрация нового пользователя
-    [HttpPost("register")]
-    public ActionResult<UserDto> Register([FromBody] RegisterRequest request)
+    private readonly EmailService _email;
+
+    // если сервер по IP — лучше держать в конфиге, но пока так:
+    private const string ServerBaseUrl = "http://192.168.1.105:5099";
+
+    public AuthController(EmailService email)
     {
-        if (UserStore.GetByEmail(request.Email) != null)
-        {
+        _email = email;
+    }
+
+    [HttpPost("register")]
+    public ActionResult Register([FromBody] RegisterRequest request)
+    {
+        var email = request.Email.Trim();
+
+        if (!MailAddress.TryCreate(email, out _))
+            return BadRequest("Некорректный email.");
+
+        if (UserStore.GetByEmail(email) != null)
             return BadRequest("Пользователь с таким email уже существует.");
-        }
+
+        var token = Guid.NewGuid().ToString("N");
 
         var user = new User
         {
-            Email = request.Email,
+            Email = email,
             Password = request.Password,
             Name = request.Name,
-            Status = UserStatus.Online
+            Status = UserStatus.Offline,
+            EmailConfirmed = false,
+            EmailConfirmToken = token
         };
+
         UserStore.AddUser(user);
-        return Ok(UserDto.FromUser(user));
+
+        _email.SendConfirmEmail(email, token, ServerBaseUrl);
+
+        return Ok("Регистрация создана. Проверь почту и подтвердите email.");
     }
 
-    /// Логин по email и паролю
     [HttpPost("login")]
     public ActionResult<UserDto> Login([FromBody] LoginRequest request)
     {
-        var user = UserStore.GetByEmail(request.Email);
+        var email = request.Email.Trim();
+
+        var user = UserStore.GetByEmail(email);
         if (user == null || user.Password != request.Password)
-        {
             return Unauthorized("Неверный email или пароль.");
-        }
+
+        if (!user.EmailConfirmed)
+            return Unauthorized("Подтвердите email перед входом.");
+
         user.Status = UserStatus.Online;
         UserStore.UpdateUser(user);
+
         return Ok(UserDto.FromUser(user));
     }
 
-    // Восстановление пароля по email
     [HttpPost("restore")]
     public ActionResult RestorePassword([FromBody] RestorePasswordRequest request)
     {
-        var user = UserStore.GetByEmail(request.Email);
-        if (user == null)
+        var email = request.Email.Trim();
+        var user = UserStore.GetByEmail(email);
+
+        if (user != null)
         {
-            return Ok("Если такой email существует, на него отправлена инструкция по восстановлению.");
+            try
+            {
+                _email.SendPasswordEmail(user.Email, user.Password);
+            }
+            catch
+            {
+                // намеренно молчим
+            }
         }
-        return Ok("На вашу почту отправлена ссылка для смены пароля (симуляция).");
+
+        return Ok("Если такой email существует, пароль отправлен на почту.");
     }
 
-    // Список всех пользователей (для теста/поиска контактов)
     [HttpGet("users")]
     public ActionResult<IEnumerable<UserDto>> GetUsers()
     {
         var users = UserStore.GetAll().Select(UserDto.FromUser);
         return Ok(users);
+    }
+
+    [HttpGet("confirm-email")]
+    public ActionResult ConfirmEmail([FromQuery] string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return BadRequest("Token пустой.");
+
+        var user = UserStore.GetAll().FirstOrDefault(u => u.EmailConfirmToken == token);
+        if (user == null)
+            return NotFound("Токен не найден или устарел.");
+
+        user.EmailConfirmed = true;
+        user.EmailConfirmToken = null;
+        user.Status = UserStatus.Offline;
+
+        UserStore.UpdateUser(user);
+
+        return Ok("Email подтверждён. Теперь можно войти в приложение.");
     }
 }

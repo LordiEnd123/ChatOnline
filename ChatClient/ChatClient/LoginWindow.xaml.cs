@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
 
 namespace ChatClient
 {
@@ -93,17 +94,15 @@ namespace ChatClient
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    if (auto)
-                    {
-                        StatusTextBlock.Text = "";
-                    }
-                    else
-                    {
-                        StatusTextBlock.Text = "Неверный email или пароль.";
-                    }
+                    var msg = await response.Content.ReadAsStringAsync();
+
+                    if (auto) StatusTextBlock.Text = "";
+                    else StatusTextBlock.Text = msg; // показываем реальную причину
+
                     ClientConfig.Clear();
                     return;
                 }
+
 
                 var body = await response.Content.ReadAsStringAsync();
                 var user = JsonSerializer.Deserialize<LoginResponse>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -195,16 +194,21 @@ namespace ChatClient
 
             try
             {
-                await _httpClient.PostAsync($"{BaseUrl}/api/Auth/restore", new StringContent($"{{\"email\":\"{email}\"}}", Encoding.UTF8, "application/json"));
+                await _httpClient.PostAsync(
+                    $"{BaseUrl}/api/Auth/restore",
+                    new StringContent($"{{\"email\":\"{email}\"}}", Encoding.UTF8, "application/json")
+                );
 
-                StatusTextBlock.Foreground = System.Windows.Media.Brushes.Green;
-                StatusTextBlock.Text = "Инструкция отправлена (симуляция).";
+                StatusTextBlock.Foreground = Brushes.Green;
+                StatusTextBlock.Text = "Пароль отправлен на почту.";
             }
             catch (Exception ex)
             {
-                StatusTextBlock.Foreground = System.Windows.Media.Brushes.Red;
+                StatusTextBlock.Foreground = Brushes.Red;
                 StatusTextBlock.Text = "Ошибка: " + ex.Message;
             }
         }
+
     }
 }
+

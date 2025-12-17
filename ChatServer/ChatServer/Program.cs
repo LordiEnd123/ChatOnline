@@ -1,4 +1,5 @@
 ﻿using ChatServer;
+using ChatServer.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,8 @@ builder.Services.AddSignalR(options =>
 {
     options.MaximumReceiveMessageSize = 10 * 1024 * 1024;
 });
+
+builder.Services.AddSingleton<EmailService>();
 
 var app = builder.Build();
 if (app.Environment.IsDevelopment())

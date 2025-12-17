@@ -258,14 +258,19 @@ namespace ChatClient
 
             // ✅ УВЕДОМЛЕНИЯ ТОЛЬКО ДЛЯ ВХОДЯЩИХ
             var isIncoming = string.Equals(msg.ToEmail, Session.Email, StringComparison.OrdinalIgnoreCase);
-
-            // если открыт диалог с этим человеком — не пиликаем
             var isActiveDialog = string.Equals(_currentDialogEmail, msg.FromEmail, StringComparison.OrdinalIgnoreCase);
 
-            if (isIncoming && !isActiveDialog)
+            // ✅ всё, что трогает окно/UI — через Dispatcher
+            Dispatcher.Invoke(() =>
             {
-                NotificationService.Show(msg);
-            }
+                var isWindowActive = this.IsActive && this.WindowState != WindowState.Minimized;
+
+                if (isIncoming && (!isWindowActive || !isActiveDialog))
+                {
+                    NotificationService.Show(msg);
+                }
+            });
+
 
             // отметить доставлено/прочитано только для входящих
             if (isIncoming)

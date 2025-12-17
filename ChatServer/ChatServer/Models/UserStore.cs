@@ -93,6 +93,9 @@ namespace ChatServer.Models
                 existing.NotificationsEnabled = user.NotificationsEnabled;
                 existing.SoundEnabled = user.SoundEnabled;
                 existing.BannerEnabled = user.BannerEnabled;
+                existing.EmailConfirmed = user.EmailConfirmed;
+                existing.EmailConfirmToken = user.EmailConfirmToken;
+
 
                 SaveToFile();
                 return true;
@@ -133,5 +136,15 @@ namespace ChatServer.Models
             }
             catch { }
         }
+
+        public static void DeleteByEmail(string email)
+        {
+            var user = GetByEmail(email);
+            if (user == null) return;
+
+            _users.Remove(user);   // или как у тебя хранится список
+            SaveToFile();             // или как у тебя сохраняется users.json
+        }
+
     }
 }
