@@ -98,35 +98,68 @@ namespace ChatClient
             set { _avatarPath = value; OnPropertyChanged(); }
         }
 
-        // "Online" / "Offline" / "Dnd"
+        // ждем: "Online" / "Offline" / "DoNotDisturb"
         public string Status
         {
             get => _status;
             set
             {
-                _status = value;
+                var normalized = NormalizeStatus(value);
+                if (_status == normalized) return;
+
+                _status = normalized;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(StatusText));
                 OnPropertyChanged(nameof(StatusColor));
             }
         }
 
-        public string StatusText => Status switch
+        public string StatusText => _status switch
         {
             "Online" => "онлайн",
-            "Dnd" => "не беспокоить",
+            "DoNotDisturb" => "не беспокоить",
             _ => "офлайн"
         };
 
-        public Brush StatusColor => Status switch
+        public Brush StatusColor => _status switch
         {
             "Online" => Brushes.LimeGreen,
-            "Dnd" => Brushes.OrangeRed,
+            "DoNotDisturb" => Brushes.OrangeRed,
             _ => Brushes.Gray
         };
+
+        private static string NormalizeStatus(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+                return "Offline";
+
+            s = s.Trim();
+
+            // если вдруг пришло цифрой "0/1/2"
+            if (int.TryParse(s, out var n))
+            {
+                return n switch
+                {
+                    1 => "Online",
+                    2 => "DoNotDisturb",
+                    _ => "Offline"
+                };
+            }
+
+            // поддержим оба варианта строк
+            if (s.Equals("Online", StringComparison.OrdinalIgnoreCase)) return "Online";
+            if (s.Equals("Offline", StringComparison.OrdinalIgnoreCase)) return "Offline";
+
+            if (s.Equals("Dnd", StringComparison.OrdinalIgnoreCase) ||
+                s.Equals("DoNotDisturb", StringComparison.OrdinalIgnoreCase))
+                return "DoNotDisturb";
+
+            return "Offline";
+        }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
+
 }

@@ -179,28 +179,20 @@ namespace ChatClient
 
 
 
-            _connection.On<string, string>("UserStatusChanged",
-                (email, status) =>
+            _connection.On<string, string>("UserStatusChanged", (email, status) =>
+            {
+                Dispatcher.Invoke(() =>
                 {
-                    Dispatcher.Invoke(() =>
+                    var contact = _contacts.FirstOrDefault(c =>
+                        c.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+
+                    if (contact != null)
                     {
-                        // 1️⃣ обновляем статус в списке контактов
-                        var contact = _contacts.FirstOrDefault(c =>
-                            c.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
-
-                        if (contact != null)
-                        {
-                            contact.Status = NormalizeStatus(status);
-
-                        }
-
-                        // 2️⃣ если это текущий диалог — обновляем хедер
-                        if (_currentDialogEmail == email)
-                        {
-
-                        }
-                    });
+                        contact.Status = status; // ✅ тут пусть будет "DoNotDisturb"
+                    }
                 });
+            });
+
 
 
             ConnectToServer();

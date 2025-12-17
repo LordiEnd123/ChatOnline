@@ -1534,5 +1534,29 @@
     "Status": 2,
     "FileContent": null,
     "IsDeleted": false
+  },
+  {
+    "Id": 138,
+    "FromEmail": "Nikitabw1337@gmail.com",
+    "ToEmail": "tavdaba@gmail.com",
+    "Text": "\u0430\u043B\u043E",
+    "Timestamp": "2025-12-17T12:15:51.3890725Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 2,
+    "FileContent": null,
+    "IsDeleted": false
+  },
+  {
+    "Id": 139,
+    "FromEmail": "Nikitabw1337@gmail.com",
+    "ToEmail": "tavdaba@gmail.com",
+    "Text": "\u043F\u043E\u0448\u043B\u0438 \u0432 \u0431\u0430\u0431\u043B \u043A\u0432\u0430\u0441 \u043E\u0434\u0438\u043D \u043D\u0430 \u043E\u0434\u0438\u043D ",
+    "Timestamp": "2025-12-17T12:16:39.066219Z",
+    "IsFile": false,
+    "FileName": null,
+    "Status": 0,
+    "FileContent": null,
+    "IsDeleted": false
   }
 ]
