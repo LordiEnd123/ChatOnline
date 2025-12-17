@@ -308,7 +308,18 @@ namespace ChatClient
 
                 if (isIncoming && (!isWindowActive || !isActiveDialog))
                 {
-                    NotificationService.Show(msg);
+                    var isIncoming = string.Equals(msg.ToEmail, Session.Email, StringComparison.OrdinalIgnoreCase);
+
+                    if (isIncoming)
+                    {
+                        // если DND — не показываем уведомления
+                        if (Session.Status == "DoNotDisturb")
+                            return;
+
+                        // если активен нужный диалог/окно — тоже можешь не показывать (как у тебя уже было)
+                        NotificationService.Show(msg);
+                    }
+
                 }
             });
 

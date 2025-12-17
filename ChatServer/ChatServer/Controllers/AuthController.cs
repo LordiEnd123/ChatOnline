@@ -68,8 +68,11 @@ public class AuthController : ControllerBase
         if (!user.EmailConfirmed)
             return Unauthorized("Подтвердите email перед входом.");
 
-        user.Status = UserStatus.Online;
+        if (user.Status == UserStatus.Offline)
+            user.Status = UserStatus.Online;
+
         UserStore.UpdateUser(user);
+
 
         return Ok(UserDto.FromUser(user));
     }

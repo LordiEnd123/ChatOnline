@@ -43,8 +43,10 @@ namespace ChatServer
                 var user = ChatServer.Models.UserStore.GetByEmail(email!);
                 if (user != null)
                 {
-                    user.Status = ChatServer.Models.UserStatus.Online;
-                    ChatServer.Models.UserStore.UpdateUser(user);
+                    if (user.Status == UserStatus.Offline)
+                        user.Status = UserStatus.Online;
+                    // если DoNotDisturb — не трогаем
+
 
                     await Clients.All.SendAsync("UserStatusChanged", user.Email, user.Status.ToString());
                 }

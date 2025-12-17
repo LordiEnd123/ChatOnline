@@ -2,10 +2,11 @@
 
 public enum UserStatus
 {
-    Offline,
-    Online,
-    DoNotDisturb
+    Offline = 0,
+    Online = 1,
+    DoNotDisturb = 2
 }
+
 
 public class User
 {
